@@ -1,1 +1,12 @@
-name: 
+name: wb idkt stocks
+
+on:
+    push:
+
+jobs:
+    idkt-Run:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+              
