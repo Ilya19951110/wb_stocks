@@ -27,8 +27,8 @@ jobs:
                 python-version: '3.10'
             - name: Install Dependencies # workflow update to trigger action
               run: pip install -r requirements.txt
-            - name: Write Google Service Account Key
-              run: echo "${{ secrets.GOOGLE_SHEETS }}" > key.json
+            - name:  Decode Google Service Account Key (from base64)
+              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
             - name: Run iidkt
               run: python iidkt.py
         
