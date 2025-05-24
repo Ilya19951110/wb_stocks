@@ -346,19 +346,19 @@ if __name__ == '__main__':
     all_cabinet = {}
 
     all_api_io = {
-        'Азарья': os.getenv('Azarya'),
-        'Михаил': os.getenv('Michael'),
-        'Рахель': os.getenv('Rachel'),
-        'Галилова': os.getenv('Galilova'),
-        'Торгмаксимум': os.getenv('TORGMAKSIMUM'),
-        'Мартыненко': os.getenv('Martynenko'),
-        'Сергей': os.getenv('Sergey'),
+        'Азарья': os.getenv('Azarya').strip(),
+        'Михаил': os.getenv('Michael').strip(),
+        'Рахель': os.getenv('Rachel').strip(),
+        'Галилова': os.getenv('Galilova').strip(),
+        'Торгмаксимум': os.getenv('TORGMAKSIMUM').strip(),
+        'Мартыненко': os.getenv('Martynenko').strip(),
+        'Сергей': os.getenv('Sergey').strip(),
     }
 
     for k, v in all_api_io.items():
         all_cabinet[k] = combain_query(
-            query_stocks(cabinet=k, hdrs=v.strip()),
-            query_in_idkt(cabinet=k, hdrs=v.strip()),
+            query_stocks(cabinet=k, hdrs=v),
+            query_in_idkt(cabinet=k, hdrs=v),
             cabinet=k
         )
 
