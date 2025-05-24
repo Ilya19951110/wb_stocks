@@ -3,7 +3,7 @@ name: wb idkt stocks
 on:
     push:
 
-# секреты
+
 env:
     Azarya: ${{ secrets.AZARYA }}
     Michael:  ${{ secrets.MICHAEL }}
