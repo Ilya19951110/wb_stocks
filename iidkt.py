@@ -308,7 +308,7 @@ def save_in_gsh(dick_data):
     all_io = pd.DataFrame()
     # сервис аккаунт гугл
     gc = gspread.service_account(
-        filename=r'C:\Users\Ilya\OneDrive\Рабочий стол\my_project\myanaliticmp-0617169ebf44.json')
+        filename='key.json')
     # открываем гугл таблицу
     spreadsheet = gc.open('Ассортиментная матрица. Полная')
     # Создание рабочего листа
