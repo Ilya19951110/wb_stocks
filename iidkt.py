@@ -357,8 +357,8 @@ if __name__ == '__main__':
 
     for k, v in all_api_io.items():
         all_cabinet[k] = combain_query(
-            query_stocks(cabinet=k, hdrs=v),
-            query_in_idkt(cabinet=k, hdrs=v),
+            query_stocks(cabinet=k, hdrs=v.strip()),
+            query_in_idkt(cabinet=k, hdrs=v.strip()),
             cabinet=k
         )
 
