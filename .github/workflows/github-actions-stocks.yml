@@ -9,4 +9,7 @@ jobs:
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
-              
+            - name: Install Dependencies
+              run: pip install -r requirements.txt
+            - name: Run iidkt
+              run: python iidkt.py
