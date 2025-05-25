@@ -25,7 +25,7 @@ def import_export_in_gh():
 
     # Создал датафрейм
     all_df = pd.DataFrame(all_data[1:], columns=all_data[0])
-
+    print(all_df.columns.tolist())
     num_col = ['Артикул WB', 'Сумма остатков', 'ID КТ',
                'Остатки с тем что в пути', 'Себестоимость', 'Литраж', 'Окончательная цена']
 
