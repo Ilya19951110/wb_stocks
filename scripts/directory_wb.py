@@ -8,7 +8,9 @@ import pandas as pd
 
 def import_export_in_gh():
     data = {}
-
+    col_df = ['Сезон',	'% выкупа', 'Себестоимость', 'Литраж', 'Название', 'Бренд',  'Предмет',	'Артикул', 'продавца',	'плановый', 'ДРР в заказ',
+              'Окончательная цена',	'Группа',	'рентабельность',	'Реклама в покупку', 'quotient(Затраты на логистикуЦена макс)',	'quotient(Затраты на хранениеЦена макс)',
+              'quotient(СебестоимостьЦена макс)', 'Опер расходы']
     # Подключился к сервисному акаунту
     gs = gspread.service_account(
         filename='key.json')
@@ -17,15 +19,16 @@ def import_export_in_gh():
     # Подключение к нужному листу
     worksheets = spreadsheet.worksheet('Справочник WB')
     # Получил все данные из таблицы 'Ассортиментная матрица. Полная', листа 'Справочник WB'
-    all_data = worksheets.get_all_values()
+    all_data = worksheets.get_all_values()[2:]
 
     # Использовал для теста, получил заголовки
     gs_headres = worksheets.row_values(1)
     # print(col_in_gsh)
 
     # Создал датафрейм
-    all_df = pd.DataFrame(all_data[1:], columns=all_data[0])
+    all_df = pd.DataFrame(all_data, columns=col_df)
     print(all_df.columns.tolist())
+
     num_col = ['Артикул WB', 'Сумма остатков', 'ID КТ',
                'Остатки с тем что в пути', 'Себестоимость', 'Литраж', 'Окончательная цена']
 
@@ -55,9 +58,9 @@ def import_export_in_gh():
         # получаем нужный лист
         wks_sheets = spr_sheets.worksheet('Справочник WB')
 
-        if gs_headres != df.columns.tolist():
-            print(f"Ошибка: заголовки в таблице {name} не совпадают")
-            break
+        # if gs_headres != df.columns.tolist():
+        #     print(f"Ошибка: заголовки в таблице {name} не совпадают")
+        #     break
 
         wks_sheets.clear()
         set_with_dataframe(wks_sheets, df)
