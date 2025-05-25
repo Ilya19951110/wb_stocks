@@ -34,5 +34,5 @@ jobs:
             - name:  Decode Google Service Account Key (from base64)
               run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
             - name: Run iidkt
-              run: python iidkt.py
+              run: python scripts/iidkt.py
         
