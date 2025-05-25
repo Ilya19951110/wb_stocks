@@ -3,8 +3,6 @@ name: WB Directory
 
 on:
     push:
-        branches:
-        - main
     schedule:
         - cron: '0 * * * *'
 

@@ -8,10 +8,6 @@ import pandas as pd
 
 def import_export_in_gh():
     data = {}
-    col_df = ['Сумма остатков', 'Артикул WB', 'Поставщик', 'ID КТ', 'urlphoto', 'ИП', 'Категория', 'Остатки с тем что в пути', 'Сезон', '% выкупа',
-              'Себестоимость', 'Литраж', 'Название', 'Бренд', 'Предмет', 'Артикул продавца', 'плановый ДРР в заказ', 'Окончательная цена', 'Группа', 'рентабельность',
-              'Реклама в покупку', 'quotient(Затраты на логистикуЦена макс)', 'quotient(Затраты на хранениеЦена макс)', 'quotient(СебестоимостьЦена макс)',
-              'Опер расходы',]
 
     # Подключился к сервисному акаунту
     gs = gspread.service_account(
@@ -21,14 +17,14 @@ def import_export_in_gh():
     # Подключение к нужному листу
     worksheets = spreadsheet.worksheet('Справочник WB')
     # Получил все данные из таблицы 'Ассортиментная матрица. Полная', листа 'Справочник WB'
-    all_data = worksheets.get_all_values()[2:]
+    all_data = worksheets.get_all_values()
 
     # Использовал для теста, получил заголовки
     gs_headres = worksheets.row_values(1)
     # print(col_in_gsh)
 
     # Создал датафрейм
-    all_df = pd.DataFrame(all_data, columns=col_df)
+    all_df = pd.DataFrame(all_data[1:], columns=all_data[0])
     print(all_df.columns.tolist())
 
     num_col = ['Артикул WB', 'Сумма остатков', 'ID КТ',
