@@ -1,7 +1,11 @@
 name: wb idkt stocks
 
 on:
-    push:
+     push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 * * * *'
 
 
 env:
