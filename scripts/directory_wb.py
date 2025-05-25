@@ -6,12 +6,12 @@ import gspread
 import pandas as pd
 
 
-def func():
+def import_export_in_gh():
     data = {}
 
     # Подключился к сервисному акаунту
     gs = gspread.service_account(
-        filename=r'C:\Users\Ilya\OneDrive\Рабочий стол\my_project\myanaliticmp-0617169ebf44.json')
+        filename='key.json')
     # Подключился к таблице
     spreadsheet = gs.open('Ассортиментная матрица. Полная')
     # Подключение к нужному листу
@@ -69,6 +69,6 @@ def func():
 
 if __name__ == "__main__":
     begin = time.time()
-    func()
+    import_export_in_gh()
     end = time.time()
     print(f'время выполнения: {end-begin}')
