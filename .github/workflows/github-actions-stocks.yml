@@ -1,7 +1,6 @@
 name: wb idkt stocks
 
 on:
-    push:
     schedule:
         - cron: '0 * * * *'
 
