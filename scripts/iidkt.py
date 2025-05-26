@@ -269,8 +269,7 @@ def combain_query(stocks, IDKT, cabinet):
         f"IDKT-{cabinet}.csv", index=False, encoding='utf-8')
 
     print(f"Кабинет {cabinet} сохранен в csv")
-    # print('idkt_nmid сохрвнен в\n C:\Users\Ilya\OneDrive\Рабочий стол\my_project\idktnmid.txt')
-    # удаление столбцов
+
     result = result.drop(columns=[
         'Баркод', 'Размер'
     ])
@@ -310,7 +309,7 @@ def combain_query(stocks, IDKT, cabinet):
 
 
 def save_in_gsh(dick_data):
-    b_data = defaultdict(pd.DataFrame)
+
     all_io = pd.DataFrame()
     # сервис аккаунт гугл
     gc = gspread.service_account(
@@ -329,6 +328,7 @@ def save_in_gsh(dick_data):
         df_tuple[1] for df_tuple in dick_data.values()
     ], ignore_index=True)
 
+    b_data = defaultdict(pd.DataFrame)
     for name, (_, bcode_df) in dick_data.items():
         if name in ['Азарья', 'Рахель', 'Михаил']:
             b_data['Фин модель Иосифовы Р А М'] = pd.concat([
@@ -352,7 +352,7 @@ def save_in_gsh(dick_data):
             wks.clear()
 
             wks.update([df.columns.values.tolist()] + df.values.tolist())
-            print(f'Загружено в таблицу {sheets}')
+            print(f'Баркод загружен в таблицу {sheets}\nДлина: {df.shape}')
         except Exception as e:
             print(f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}")
 
@@ -398,7 +398,7 @@ if __name__ == '__main__':
         )
 
     for name, df in all_cabinet.items():
-        print(f"{name}: {len(df)}, тип {type(df)}")
+        print(f"{name}: {len(df[1])}, тип {type(df)}")
 
     save_in_gsh(all_cabinet)
     end = time.time()
