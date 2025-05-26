@@ -300,7 +300,11 @@ def combain_query(stocks, IDKT, cabinet):
     else:
         print(f'косячных карточек {cabinet} нет', '', sep='\n')
 
-    print(f"Есть ли дубликаты в {cabinet}?", result.duplicated().any())
+    print(
+        f"Есть ли дубликаты в {cabinet}?", result.duplicated().any(),
+        f"артикул и баркод {cabinet}: {barcode_nmid.shape}",
+        sep='\n'
+    )
 
     return result, barcode_nmid
 
@@ -393,6 +397,8 @@ if __name__ == '__main__':
             cabinet=k
         )
 
+    for name, df in all_cabinet():
+        print(f"{name}: {len(df)}, тип {type(df)}")
     save_in_gsh(all_cabinet)
     end = time.time()
     print(f"Время выполнения: {end-begin}")
