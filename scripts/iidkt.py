@@ -397,8 +397,9 @@ if __name__ == '__main__':
             cabinet=k
         )
 
-    for name, df in all_cabinet():
+    for name, df in all_cabinet.items():
         print(f"{name}: {len(df)}, тип {type(df)}")
+
     save_in_gsh(all_cabinet)
     end = time.time()
     print(f"Время выполнения: {end-begin}")
