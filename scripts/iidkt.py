@@ -1,3 +1,4 @@
+from collections import defaultdict
 import requests
 import json
 from datetime import datetime, timedelta
@@ -305,6 +306,7 @@ def combain_query(stocks, IDKT, cabinet):
 
 
 def save_in_gsh(dick_data):
+    b_data = defaultdict(pd.DataFrame)
     all_io = pd.DataFrame()
     # сервис аккаунт гугл
     gc = gspread.service_account(
@@ -315,20 +317,49 @@ def save_in_gsh(dick_data):
     worksheet_idkt = spreadsheet.worksheet('API')
     worksheet_barcode = spreadsheet.worksheet('API 2')
 
+    # объединяем все дата фреймы и выгружаем их
+    all_io = pd.concat([df_tuple[0]
+                       for df_tuple in dick_data.values()], ignore_index=True)
+    # выгружаем и объединяем все баркода
     barcode = pd.concat([
         df_tuple[1] for df_tuple in dick_data.values()
     ], ignore_index=True)
 
-    # for name, (df_1, *_) in dick_data.items():
-    #     all_io = pd.concat([all_io, df_1], ignore_index=True)
+    for name, (_, bcode_df) in dick_data.items():
+        if name in ['Азарья', 'Рахель', 'Михаил']:
+            b_data['Фин модель Иосифовы Р А М'] = pd.concat([
+                b_data['Фин модель Иосифовы Р А М'], bcode_df
+            ], ignore_index=True)
 
-    all_io = pd.concat([df_tuple[0]
-                       for df_tuple in dick_data.values()], ignore_index=True)
+        if name in ['Галилова']:
+            b_data['Фин модель Галилова'] = pd.concat([
+                b_data['Фин модель Галилова'], bcode_df
+            ], ignore_index=True)
 
-    # Чтение и запись данных в листы в гугл таблицу остатки + id kt
+        if name in ['Мартыненко', 'Торгмаксимум']:
+            b_data['Фин модель Мартыненко и Торгмаксимум'] = pd.concat(
+                [b_data['Фин модель Мартыненко и Торгмаксимум'], bcode_df], ignore_index=True)
+
+    # загрузка баркодов по кабинетам
+    for sheets, df in b_data.items():
+        try:
+            sh = gc.open(sheets)
+            wks = sh.worksheet('API WB barcode')
+            wks.clear()
+
+            wks.update([df.columns.values.tolist()] + df.values.tolist())
+            print(f'Загружено в таблицу {sheets}')
+        except Exception as e:
+            print(f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}")
+
+    worksheet_idkt.clear()
+    worksheet_barcode.clear()
+
+   # Чтение и запись данных в листы в гугл таблицу остатки + id kt
     worksheet_idkt.update([all_io.columns.values.tolist()] +
                           all_io.values.tolist())
 
+    # чтение и запись всех баркодов
     worksheet_barcode.update(
         [barcode.columns.values.tolist()] + barcode.values.tolist())
     print(
