@@ -268,6 +268,9 @@ def combain_query(stocks, IDKT, cabinet):
     IDKT_nmid = result.filter(['Артикул WB', 'ID КТ']).to_csv(
         f"data/IDKT-{cabinet}.csv", index=False, encoding='utf-8')
 
+    os.system(f"git add data/IDKT-{cabinet}.csv")
+    os.system(f"git commit -m 'Обновление CSV для кабинета {cabinet}'")
+    os.system(f"git push origin main")
     print(f"Кабинет {cabinet} сохранен в csv")
 
     result = result.drop(columns=[
