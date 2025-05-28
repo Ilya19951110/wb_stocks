@@ -1,0 +1,33 @@
+name: Adverting campaing
+
+on:
+    schedule:
+        - cron: '0 10 * * 1'
+
+env:
+    Azarya: ${{ secrets.AZARYA }}
+    Michael:  ${{ secrets.MICHAEL }}
+    Rachel:  ${{ secrets.RACHEL }}
+    Galilova:  ${{ secrets.GALILOVA }}
+    TORGMAKSIMUM:  ${{ secrets.TORGMAKSIMUM }}
+    Martynenko:  ${{ secrets.MARTYNENKO }}
+    Sergey:  ${{ secrets.SERGEY }}
+
+jobs:
+    Run-Adverting:
+            run-ons: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.10'
+            - name: Debug - Workflow started
+              run: echo "Workflow started at $(date)"
+            - name: Install Dependencies # workflow update to trigger action
+              run: pip install -r requirements.txt
+            - name:  Decode Google Service Account Key (from base64)
+              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+            - name: 
+              run: python scripts/advertising-campaign-statistics.py
