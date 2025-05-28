@@ -266,7 +266,7 @@ def combain_query(stocks, IDKT, cabinet):
 
     # дф с артикулом и idkt
     IDKT_nmid = result.filter(['Артикул WB', 'ID КТ']).to_csv(
-        f"IDKT-{cabinet}.csv", index=False, encoding='utf-8')
+        f"data/IDKT-{cabinet}.csv", index=False, encoding='utf-8')
 
     print(f"Кабинет {cabinet} сохранен в csv")
 
