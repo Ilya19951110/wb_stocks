@@ -264,6 +264,7 @@ def combain_query(stocks, IDKT, cabinet):
         'Артикул WB', 'Баркод'
     ])
 
+    os.makedirs('data', exist_ok=True)
     # дф с артикулом и idkt
     IDKT_nmid = result.filter(['Артикул WB', 'ID КТ']).to_csv(
         f"data/IDKT-{cabinet}.csv", index=False, encoding='utf-8')
