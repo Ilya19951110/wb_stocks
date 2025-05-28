@@ -26,6 +26,8 @@ jobs:
               uses: actions/setup-python@v4
               with:
                 python-version: '3.10'
+            - name:  Create data directory
+              run: mkdir -p data
             - name: Debug - Workflow started
               run: echo "Workflow started at $(date)"
             - name: Install Dependencies # workflow update to trigger action
@@ -34,5 +36,10 @@ jobs:
               run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
             - name: Run iidkt
               run: python scripts/iidkt.py
-            
+            - name: Upload CSV files
+              uses: actions/upload-artifact@v3
+              with:
+                name:  idkt-csv
+                path:  data/IDKT-*.csv
+                if-no-files-found: error  # или 'warn'/'ignore'
         
