@@ -7,12 +7,12 @@ on:
 
 env:
     Azarya: ${{ secrets.AZARYA }}
-    Michael:  ${{ secrets.MICHAEL }}
-    Rachel:  ${{ secrets.RACHEL }}
-    Galilova:  ${{ secrets.GALILOVA }}
-    TORGMAKSIMUM:  ${{ secrets.TORGMAKSIMUM }}
-    Martynenko:  ${{ secrets.MARTYNENKO }}
-    Sergey:  ${{ secrets.SERGEY }}
+    Michael: ${{ secrets.MICHAEL }}
+    Rachel: ${{ secrets.RACHEL }}
+    Galilova: ${{ secrets.GALILOVA }}
+    TORGMAKSIMUM: ${{ secrets.TORGMAKSIMUM }}
+    Martynenko: ${{ secrets.MARTYNENKO }}
+    Sergey: ${{ secrets.SERGEY }}
 
 # проверка
 
