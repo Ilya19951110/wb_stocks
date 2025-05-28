@@ -1,0 +1,26 @@
+name: Tariffs box
+
+on:
+    schedule:
+        - cron: '0 10 1 * *'
+
+    
+env:
+    Rachel:  ${{ secrets.RACHEL }}
+
+jobs:
+  Run-Tariff-box:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.10'
+            - name: Install Dependencies 
+              run: pip install -r requirements.txt
+            - name:  Decode Google Service Account Key (from base64)
+              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+            - name: Run tariffs-for-boxes
+              run: python scripts/tariffs-for-boxes.py
