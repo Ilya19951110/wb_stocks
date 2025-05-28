@@ -37,9 +37,9 @@ jobs:
             - name: Run iidkt
               run: python scripts/iidkt.py
             - name: Upload CSV files
-              uses: actions/upload-artifact@v3
+              uses: actions/upload-artifact@v4.3.0
               with:
                 name:  idkt-csv
                 path:  data/IDKT-*.csv
                 if-no-files-found: error  # или 'warn'/'ignore'
-        
+                retention-days: 3
