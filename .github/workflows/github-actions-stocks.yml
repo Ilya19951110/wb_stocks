@@ -19,9 +19,6 @@ env:
 jobs:
     idkt-Run:
         runs-on: ubuntu-latest
-        permissions:
-           contents: write
-
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
@@ -39,17 +36,4 @@ jobs:
               run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
             - name: Run iidkt
               run: python scripts/iidkt.py
-            - name: Debug - Check generated files
-              run: |
-                git config --global user.name "GitHub Actions"
-                git config -- global.email "actions@github.com"
-                git add data/
-                git commit -m "Auto-update: IDKT CSV files [$(date +'%Y-%m-%d %H:%M')]"
-                git pull --rebase  # Избегаем конфликтов
-                git push
-            - name: Upload CSV as artifact (optional)
-              uses: actions/upload-artifact@v4
-              with:
-                name: idkt-csv
-                path: data/IDKT-*.csv
-                retention-days: 3
+          

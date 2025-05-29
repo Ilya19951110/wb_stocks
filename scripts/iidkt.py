@@ -310,19 +310,26 @@ def combain_query(stocks, IDKT, cabinet):
 
 def save_in_gsh(dick_data):
 
-    all_io = pd.DataFrame()
+    all_cabinet = pd.DataFrame()
     # сервис аккаунт гугл
     gc = gspread.service_account(
         filename='key.json')
     # открываем гугл таблицу
     spreadsheet = gc.open('Ассортиментная матрица. Полная')
+
     # Создание рабочего листа
     worksheet_idkt = spreadsheet.worksheet('API')
     worksheet_barcode = spreadsheet.worksheet('API 2')
+    worksheet_block = spreadsheet.worksheet('БЛОК')
 
     # объединяем все дата фреймы и выгружаем их
-    all_io = pd.concat([df_tuple[0]
-                       for df_tuple in dick_data.values()], ignore_index=True)
+    all_cabinet = pd.concat([df_tuple[0]
+                             for df_tuple in dick_data.values()], ignore_index=True)
+
+    all_cabinet = all_cabinet[
+        (~all_cabinet['Артикул Wb'].isin([int(row) for row in worksheet_block.col_values(2)[1:]])) &
+        (all_cabinet['Итого Остатки'] > 0)
+    ]
     # выгружаем и объединяем все баркода
     barcode = pd.concat([
         df_tuple[1] for df_tuple in dick_data.values()
@@ -360,8 +367,8 @@ def save_in_gsh(dick_data):
     worksheet_barcode.clear()
 
    # Чтение и запись данных в листы в гугл таблицу остатки + id kt
-    worksheet_idkt.update([all_io.columns.values.tolist()] +
-                          all_io.values.tolist())
+    worksheet_idkt.update([all_cabinet.columns.values.tolist()] +
+                          all_cabinet.values.tolist())
 
     # чтение и запись всех баркодов
     worksheet_barcode.update(
