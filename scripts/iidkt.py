@@ -314,18 +314,19 @@ def save_in_gsh(dick_data):
     worksheet_barcode = spreadsheet.worksheet('API 2')
     worksheet_block = spreadsheet.worksheet('БЛОК')
 
+    block_nmid = set([
+        int(row[1])
+        for row in worksheet_block.get_all_values()[1:]
+        if row[0].strip().isdigit() and int(row[0]) == 0
+    ])
+
     # объединяем все дата фреймы и выгружаем их
     all_cabinet = pd.concat([df_tuple[0]
                              for df_tuple in dick_data.values()], ignore_index=True)
 
-    art_block = worksheet_block.col_values(2)[1:]
-    ost_block = worksheet_block.col_values(1)[1:]
-
-    block_nmid = [int(art) for art, ost in zip(
-        art_block, ost_block) if int(ost) == 0]
-
-    all_cabinet['Артикул WB'] = all_cabinet[~all_cabinet['Артикул WB'].isin(
+    all_cabinet = all_cabinet[~all_cabinet['Артикул WB'].isin(
         block_nmid)]
+
     # выгружаем и объединяем все баркода
     barcode = pd.concat([
         df_tuple[1] for df_tuple in dick_data.values()
