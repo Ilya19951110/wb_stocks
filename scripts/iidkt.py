@@ -327,7 +327,7 @@ def save_in_gsh(dick_data):
                              for df_tuple in dick_data.values()], ignore_index=True)
 
     all_cabinet = all_cabinet[
-        (~all_cabinet['Артикул Wb'].isin([int(row) for row in worksheet_block.col_values(2)[1:]])) &
+        (~all_cabinet['Артикул WB'].isin([int(row) for row in worksheet_block.col_values(2)[1:]])) &
         (all_cabinet['Итого Остатки'] > 0)
     ]
     # выгружаем и объединяем все баркода
