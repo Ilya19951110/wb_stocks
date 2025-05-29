@@ -3,12 +3,10 @@ import requests
 import json
 from datetime import datetime, timedelta
 import pandas as pd
-from dotenv import load_dotenv
 import os
 import time
-import math
 import gspread
-from google.oauth2.service_account import Credentials
+from gspread_dataframe import set_with_dataframe
 
 # Метод предоставляет количество остатков товаров на складах WB. Данные обновляются раз в 30 минут. Нужен!!!
 
@@ -264,12 +262,6 @@ def combain_query(stocks, IDKT, cabinet):
         'Артикул WB', 'Баркод'
     ])
 
-    # дф с артикулом и idkt
-    IDKT_nmid = result.filter(['Артикул WB', 'ID КТ']).to_csv(
-        f"data/IDKT-{cabinet}.csv", index=False, encoding='utf-8')
-
-    print(f"Кабинет {cabinet} сохранен в csv")
-
     result = result.drop(columns=[
         'Баркод', 'Размер'
     ])
@@ -326,10 +318,12 @@ def save_in_gsh(dick_data):
     all_cabinet = pd.concat([df_tuple[0]
                              for df_tuple in dick_data.values()], ignore_index=True)
 
-    # all_cabinet = all_cabinet[
-    #     (~all_cabinet['Артикул WB'].isin([int(row) for row in worksheet_block.col_values(2)[1:]])) &
-    #     (all_cabinet['Итого остатки'] > 0)
-    # ]
+    all_cabinet = all_cabinet[
+        ~(
+            (all_cabinet['Артикул WB'].isin([int(row) for row in worksheet_block.col_values(2)[1:]])) &
+            (all_cabinet['Итого остатки'] == 0)
+        )
+    ]
     # выгружаем и объединяем все баркода
     barcode = pd.concat([
         df_tuple[1] for df_tuple in dick_data.values()
@@ -357,8 +351,8 @@ def save_in_gsh(dick_data):
             sh = gc.open(sheets)
             wks = sh.worksheet('API WB barcode')
             wks.clear()
-
-            wks.update([df.columns.values.tolist()] + df.values.tolist())
+            set_with_dataframe(sheets, df)
+            # wks.update([df.columns.values.tolist()] + df.values.tolist())
             print(f'Баркод загружен в таблицу {sheets}\nДлина: {df.shape}')
         except Exception as e:
             print(f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}")
@@ -370,9 +364,10 @@ def save_in_gsh(dick_data):
     worksheet_idkt.update([all_cabinet.columns.values.tolist()] +
                           all_cabinet.values.tolist())
 
+    set_with_dataframe(worksheet_barcode, barcode)
     # чтение и запись всех баркодов
-    worksheet_barcode.update(
-        [barcode.columns.values.tolist()] + barcode.values.tolist())
+    # worksheet_barcode.update(
+    #     [barcode.columns.values.tolist()] + barcode.values.tolist())
     print(
         f"Таблица для выгрузки: {spreadsheet}"
         f"Данные загружены в лист {worksheet_idkt}. Длина строк: {len(worksheet_idkt.get_all_values())}",
