@@ -318,12 +318,14 @@ def save_in_gsh(dick_data):
     all_cabinet = pd.concat([df_tuple[0]
                              for df_tuple in dick_data.values()], ignore_index=True)
 
-    all_cabinet = all_cabinet[
-        ~(
-            (all_cabinet['Артикул WB'].isin([int(row) for row in worksheet_block.col_values(2)[1:]])) &
-            (all_cabinet['Итого остатки'] == 0)
-        )
-    ]
+    art_block = worksheet_block.col_values(2)[1:]
+    ost_block = worksheet_block.col_values(1)[1:]
+
+    block_nmid = [int(art) for art, ost in zip(
+        art_block, ost_block) if int(ost) == 0]
+
+    all_cabinet['Артикул WB'] = all_cabinet[~all_cabinet['Артикул WB'].isin(
+        block_nmid)]
     # выгружаем и объединяем все баркода
     barcode = pd.concat([
         df_tuple[1] for df_tuple in dick_data.values()
