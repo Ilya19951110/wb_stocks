@@ -298,7 +298,7 @@ def combain_query(stocks, IDKT, cabinet):
 
     print(
         f"Есть ли дубликаты в {cabinet}?", result.duplicated().any(),
-        f"артикул и баркод {cabinet}: {barcode_nmid.shape}",
+        f"артикул и баркод {cabinet}: {barcode_nmid.columns.tolist()}",
         sep='\n'
     )
 
