@@ -283,8 +283,8 @@ def combain_query(stocks, IDKT, cabinet):
     # применяем новое расположение
     result = result[new_order]
     # фильтруем по убыванию
-    result['Фото'] = result['Фото'].apply(
-        lambda url: f'=IMAGE("{url}", 4, 20, 81)' if pd.notna(url) else '')
+    # result['Фото'] = result['Фото'].apply(
+    #     lambda url: f'=IMAGE("{url}", 4, 20, 81)' if pd.notna(url) else '')
 
     result = result.sort_values('Итого остатки', ascending=False)
     result['Кабинет'] = cabinet
