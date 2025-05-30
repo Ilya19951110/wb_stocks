@@ -316,6 +316,7 @@ def save_in_gsh(dick_data):
 
     block_nmid = set([
         int(row[1])
+
         for row in worksheet_block.get_all_values()[1:]
         if row[0].strip().isdigit() and int(row[0]) == 0
     ])
@@ -354,8 +355,8 @@ def save_in_gsh(dick_data):
             sh = gc.open(sheets)
             wks = sh.worksheet('API WB barcode')
             wks.clear()
-            set_with_dataframe(sheets, df)
-            # wks.update([df.columns.values.tolist()] + df.values.tolist())
+            # set_with_dataframe(sheets, df)
+            wks.update([df.columns.values.tolist()] + df.values.tolist())
             print(f'Баркод загружен в таблицу {sheets}\nДлина: {df.shape}')
         except Exception as e:
             print(f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}")
@@ -367,10 +368,10 @@ def save_in_gsh(dick_data):
     worksheet_idkt.update([all_cabinet.columns.values.tolist()] +
                           all_cabinet.values.tolist())
 
-    set_with_dataframe(worksheet_barcode, barcode)
+    # set_with_dataframe(worksheet_barcode, barcode)
     # чтение и запись всех баркодов
-    # worksheet_barcode.update(
-    #     [barcode.columns.values.tolist()] + barcode.values.tolist())
+    worksheet_barcode.update(
+        [barcode.columns.values.tolist()] + barcode.values.tolist())
     print(
         f"Таблица для выгрузки: {spreadsheet}"
         f"Данные загружены в лист {worksheet_idkt}. Длина строк: {len(worksheet_idkt.get_all_values())}",
