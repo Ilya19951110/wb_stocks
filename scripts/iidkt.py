@@ -316,17 +316,41 @@ def save_in_gsh(dick_data):
 
     # Создание рабочего листа
 
-    worksheet_block = spreadsheet.worksheet('БЛОК')
-
     try:
-        print("Получаем список заблокированных nmid из листа 'Блок'")
-        block_nmid = set([
-            int(row[1])
+        worksheet_block = None
 
-            for row in worksheet_block.get_all_values()[1:]
-            if row[0].strip().isdigit() and int(row[0]) == 0
-        ])
-        print(f"Получено {len(block_nmid)} заблокированных nmid")
+        try:
+            print('получаем доступ к worksheet_block')
+            worksheet_block = spreadsheet.worksheet('БЛОК')
+        except WorksheetNotFound as e:
+            print(f"[ОШИБКА] Лист БЛОК не найден: {e}")
+
+        except APIError as e:
+            print(f"[ОШИБКА] Проблема с доступом к листу БЛОК: {e}")
+
+        except Exception as e:
+            print(f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом БЛОК: {e}")
+
+        if worksheet_block:
+            try:
+                print("Получаем список заблокированных nmid из листа 'БЛОК'")
+                block_nmid = set([
+                    int(row[1])
+
+                    for row in worksheet_block.get_all_values()[1:]
+                    if row[0].strip().isdigit() and int(row[0]) == 0
+                ])
+                print(f"Получено {len(block_nmid)} заблокированных nmid")
+
+            except Exception as e:
+                print(
+                    f"[ОШИБКА] ❌ Не удалось прочитать данные из листа 'БЛОК': {e}")
+                block_nmid = set()
+
+        else:
+            print("⚠️ Ошибка: лист 'БЛОК' не доступен — данные не загружены")
+            block_nmid = set()
+
     except Exception as e:
         print(f"\033[91m[ОШИБКА]\033[0m при получении block_nmid: {e}")
         block_nmid = set()
@@ -338,13 +362,13 @@ def save_in_gsh(dick_data):
             print("Получаем доступ к листу 'API'")
             worksheet_idkt = spreadsheet.worksheet('API')
         except WorksheetNotFound as e:
-            print(f"[ОШИБКА] Лист 'API' не найден: {e}")
+            print(f"[ОШИБКА] Лист 'API не найден: {e}")
 
         except APIError as e:
-            print(f"[ОШИБКА] Проблема с доступом к листу: {e}")
+            print(f"[ОШИБКА] Проблема с доступом к листу API: {e}")
 
         except Exception as e:
-            print(f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом: {e}")
+            print(f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом API: {e}")
 
         if worksheet_idkt:
             try:
@@ -366,7 +390,7 @@ def save_in_gsh(dick_data):
                     print('Данные all_cabinet выгружены в лист API')
             except Exception as e:
                 print(
-                    f"[ОШИБКА] ❌ Ошибка при формировании или выгрузке all_cabinet: {e}")
+                    f"[ОШИБКА] ❌ Ошибка при формировании или выгрузке all_cabinet в лист API: {e}")
         else:
             print("Пропущена выгрузка all_cabinet: лист 'API' не доступен")
 
@@ -469,14 +493,6 @@ def save_in_gsh(dick_data):
         except Exception as e:
             print(
                 f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}\n данные не выгружены")
-
-    print(
-        f"Таблица для выгрузки: {spreadsheet}"
-        f"Данные загружены в лист {worksheet_idkt}. Длина строк: {len(worksheet_idkt.get_all_values())}",
-        f"Данные загружены в лист {worksheet_barcode}. Длина строк: {len(worksheet_barcode.get_all_values())}",
-
-        sep='\n'
-    )
 
 
 if __name__ == '__main__':
