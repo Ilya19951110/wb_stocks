@@ -6,8 +6,6 @@ import time
 import os
 from datetime import datetime, timedelta
 import requests
-import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
 
 
 def query_in_idkt(cabinet, hdrs):
@@ -17,7 +15,7 @@ def query_in_idkt(cabinet, hdrs):
 
     # итоговый список карточек
     all_cards = []
-    rows = []
+
     cursor = None
 
     while True:
@@ -82,14 +80,7 @@ def query_in_idkt(cabinet, hdrs):
         time.sleep(DELAY)
 
     if all_cards:
-        for card in all_cards:
-            info = {
-                'Артикул WB': card['nmID'],
-                'ID': card['imtID'],
-            }
-            rows.append(info)
-
-    return pd.DataFrame(rows)
+        return pd.DataFrame([{'Артикул WB': card['nmID'], 'ID': card['imtID']} for card in all_cards])
 
 
 def funnel_sales(name, hdrs):
@@ -236,48 +227,52 @@ def funck(name, hdrs, IDKT):
 
 
 def save_in_gsh(dict_data):
+    GROUP_MAP = {
+        'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
+        'Фин модель Галилова': ['Галилова'],
+        'Фин модель Мартыненко и Торгмаксимум': ['Мартыненко', 'Торгмаксимум']
+    }
 
-    gs = gspread.service_account(
-        filename='key.json')
+    def goup_by_sheet(data, MAP):
 
-    sheet = 'API WB Воронка'
+        result = defaultdict(pd.DataFrame)
 
-    data = defaultdict(pd.DataFrame)
-    for name, df in dict_data.items():
-        if name in ['Азарья', 'Михаил', 'Рахель']:
-            data['Фин модель Иосифовы Р А М'] = pd.concat(
-                [data['Фин модель Иосифовы Р А М'], df], ignore_index=True)
+        for name, df in data.items():
+            for sheet, pepole in MAP.items():
+                if name in pepole:
+                    result[sheet] = pd.concat(
+                        [result[sheet], df], ignore_index=True)
 
-        if name in ['Галилова']:
-            data['Фин модель Галилова'] = pd.concat(
-                [data['Фин модель Галилова'], df], ignore_index=True)
+        print('🚀🚀 Данные сгруппированы!')
+        return result
 
-        if name in ['Мартыненко', 'Торгмаксимум']:
-            data['Фин модель Мартыненко и Торгмаксимум'] = pd.concat(
-                [data['Фин модель Мартыненко и Торгмаксимум'], df], ignore_index=True)
+    def update_sheet(group, sheet_name='API WB Воронка'):
+        gs = gspread.service_account(filename='key.json')
 
-    for name, df in data.items():
-        sh = gs.open(name)
-        worksheet = sh.worksheet(sheet)
+        for name, df in group.items():
+            sh = gs.open(name)
+            worksheet = sh.worksheet(sheet_name)
 
-        worksheet.update(
-            range_name=f"A{len(worksheet.get_all_values())+1}",
-            values=df.values.tolist())
+            worksheet.update(
+                range_name=f"A{len(worksheet.get_all_values())+1}",
+                values=df.values.tolist())
+        print('📤 Данные выгружены в гугл таблицу!🚀🚀')
 
-    print(f"выгружено в гугл таблицу!")
+    grouped = goup_by_sheet(data=dict_data, MAP=GROUP_MAP)
+    update_sheet(grouped)
 
 
 if __name__ == '__main__':
 
     result = {}
     all_iosifovy = {
-        'Азарья': os.getenv('Azarya'),
-        'Михаил': os.getenv('Michael'),
-        'Рахель': os.getenv('Rachel'),
-        'Галилова': os.getenv('Galilova'),
-        'Мартыненко': os.getenv('Martynenko'),
-        'Сергей': os.getenv('Sergey'),
-        'Торгмаксимум': os.getenv('TORGMAKSIMUM')
+        'Азарья': os.getenv('Azarya').strip(),
+        'Михаил': os.getenv('Michael').strip(),
+        'Рахель': os.getenv('Rachel').strip(),
+        'Галилова': os.getenv('Galilova').strip(),
+        'Мартыненко': os.getenv('Martynenko').strip(),
+        'Сергей': os.getenv('Sergey').strip(),
+        'Торгмаксимум': os.getenv('TORGMAKSIMUM').strip()
     }
 
     start_time = time.time()
@@ -300,4 +295,4 @@ if __name__ == '__main__':
 
     save_in_gsh(result)
     end_time = time.time()
-    print(f"Время выполнения: {(end_time-start_time)/60}")
+    print(f"Время выполнения: {(end_time-start_time)/60:.2f}")

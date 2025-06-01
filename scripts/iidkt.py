@@ -282,9 +282,6 @@ def combain_query(stocks, IDKT, cabinet):
 
     # применяем новое расположение
     result = result[new_order]
-    # фильтруем по убыванию
-    # result['Фото'] = result['Фото'].apply(
-    #     lambda url: f'=IMAGE("{url}", 4, 20, 81)' if pd.notna(url) else '')
 
     result = result.sort_values('Итого остатки', ascending=False)
     result['Кабинет'] = cabinet
@@ -305,194 +302,211 @@ def combain_query(stocks, IDKT, cabinet):
     return result, barcode_nmid
 
 
-def save_in_gsh(dick_data):
+def save_in_gsh(dict_data):
 
-    all_cabinet = pd.DataFrame()
     # сервис аккаунт гугл
     gc = gspread.service_account(
         filename='key.json')
     # открываем гугл таблицу
     spreadsheet = gc.open('Ассортиментная матрица. Полная')
 
+    def get_block_nmid():
+        try:
+            worksheet_block = None
+
+            try:
+                print('🟢 получаем доступ к worksheet_block')
+                worksheet_block = spreadsheet.worksheet('БЛОК')
+            except WorksheetNotFound as e:
+                print(f"❌❌ [ОШИБКА] Лист БЛОК не найден: {e}")
+
+            except APIError as e:
+                print(f"❌❌ [ОШИБКА] Проблема с доступом к листу БЛОК: {e}")
+
+            except Exception as e:
+                print(
+                    f"❌❌ [НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом БЛОК: {e}")
+
+            if worksheet_block:
+                try:
+                    print("🟢 Получаем список заблокированных nmid из листа 'БЛОК'")
+                    block = set([
+                        int(row[1])
+
+                        for row in worksheet_block.get_all_values()[1:]
+                        if row[0].strip().isdigit() and int(row[0]) == 0
+                    ])
+                    print(f"🟢 Получено {len(block)} заблокированных nmid ✅")
+                    return block
+                except Exception as e:
+                    print(
+                        f"[ОШИБКА] ❌❌ Не удалось прочитать данные из листа 'БЛОК': {e}")
+                    return set()
+
+            else:
+                print("⚠️ Ошибка: лист 'БЛОК' не доступен — данные не загружены")
+                return set()
+
+        except Exception as e:
+            print(f"\033[91m[ОШИБКА]\033[0m при получении block_nmid: {e} ❌❌")
+            return set()
+
     # Создание рабочего листа
 
-    try:
-        worksheet_block = None
+    def loading_all_cabinets(data, block):
+        all_cabinet = pd.DataFrame()
 
         try:
-            print('получаем доступ к worksheet_block')
-            worksheet_block = spreadsheet.worksheet('БЛОК')
-        except WorksheetNotFound as e:
-            print(f"[ОШИБКА] Лист БЛОК не найден: {e}")
-
-        except APIError as e:
-            print(f"[ОШИБКА] Проблема с доступом к листу БЛОК: {e}")
-
-        except Exception as e:
-            print(f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом БЛОК: {e}")
-
-        if worksheet_block:
-            try:
-                print("Получаем список заблокированных nmid из листа 'БЛОК'")
-                block_nmid = set([
-                    int(row[1])
-
-                    for row in worksheet_block.get_all_values()[1:]
-                    if row[0].strip().isdigit() and int(row[0]) == 0
-                ])
-                print(f"Получено {len(block_nmid)} заблокированных nmid")
-
-            except Exception as e:
-                print(
-                    f"[ОШИБКА] ❌ Не удалось прочитать данные из листа 'БЛОК': {e}")
-                block_nmid = set()
-
-        else:
-            print("⚠️ Ошибка: лист 'БЛОК' не доступен — данные не загружены")
-            block_nmid = set()
-
-    except Exception as e:
-        print(f"\033[91m[ОШИБКА]\033[0m при получении block_nmid: {e}")
-        block_nmid = set()
-
-    try:
-        worksheet_idkt = None
-        try:
-
-            print("Получаем доступ к листу 'API'")
-            worksheet_idkt = spreadsheet.worksheet('API')
-        except WorksheetNotFound as e:
-            print(f"[ОШИБКА] Лист 'API не найден: {e}")
-
-        except APIError as e:
-            print(f"[ОШИБКА] Проблема с доступом к листу API: {e}")
-
-        except Exception as e:
-            print(f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом API: {e}")
-
-        if worksheet_idkt:
-            try:
-                print('Объединяем все кабинеты (df[0]) и фильтруем по условию')
-
-                all_cabinet = pd.concat([df_tuple[0]
-                                        for df_tuple in dick_data.values()], ignore_index=True)
-
-                all_cabinet = all_cabinet[~all_cabinet['Артикул WB'].isin(
-                    block_nmid)]
-
-                if all_cabinet.empty:
-                    print("⚠️ DataFrame all_cabinet пуст — пропущена выгрузка.")
-                else:
-                    worksheet_idkt.clear()
-
-                    worksheet_idkt.update(
-                        [all_cabinet.columns.values.tolist()] + all_cabinet.values.tolist())
-                    print('Данные all_cabinet выгружены в лист API')
-            except Exception as e:
-                print(
-                    f"[ОШИБКА] ❌ Ошибка при формировании или выгрузке all_cabinet в лист API: {e}")
-        else:
-            print("Пропущена выгрузка all_cabinet: лист 'API' не доступен")
-
-    except Exception as e:
-        print(
-            f"\033[91m[ОШИБКА]\033[0m Общая ошибка при обработке all_cabinet: {e}")
-
-    try:
-        try:
-            worksheet_barcode = spreadsheet.worksheet('API 2')
-        except WorksheetNotFound as e:
-            print(f"[ОШИБКА] Лист 'API 2' не найден: {e}")
-        except APIError as e:
-            print(f"[ОШИБКА] Проблема с доступом к листу 'API 2': {e}")
             worksheet_idkt = None
-        except Exception as e:
-            print(f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом 'API 2': {e}")
-            worksheet_idkt = None
-
-        if worksheet_barcode:
-            print('Объединяем все баркода (df[1]) из dick_data"')
-            # выгружаем и объединяем все баркода
-            barcode = pd.concat([
-                df_tuple[1] for df_tuple in dick_data.values()
-            ], ignore_index=True)
-            print(f"Всего баркодов {len(barcode)}")
-
-            worksheet_barcode.clear()
-            worksheet_barcode.update([
-                barcode.columns.values.tolist()
-            ] + barcode.values.tolist()
-            )
-            print(f"📤 Загружено в лист 'API 2': {barcode.shape[0]} строк")
-
-        else:
-            print("Пропущена выгрузка barcode: лист 'API 2' не доступен")
-
-    except Exception as e:
-        print(
-            f"\033[91m[ОШИБКА]\033[0m при формировании или выгрузке barcode: {e}")
-
-    b_data = defaultdict(pd.DataFrame)
-    for name, (_, bcode_df) in dick_data.items():
-
-        if name in ['Азарья', 'Рахель', 'Михаил']:
-            b_data['Фин модель Иосифовы Р А М'] = pd.concat([
-                b_data['Фин модель Иосифовы Р А М'], bcode_df
-            ], ignore_index=True)
-
-        if name in ['Галилова']:
-            b_data['Фин модель Галилова'] = pd.concat([
-                b_data['Фин модель Галилова'], bcode_df
-            ], ignore_index=True)
-
-        if name in ['Мартыненко', 'Торгмаксимум']:
-            b_data['Фин модель Мартыненко и Торгмаксимум'] = pd.concat(
-                [b_data['Фин модель Мартыненко и Торгмаксимум'], bcode_df], ignore_index=True)
-
-        # загрузка баркодов по кабинетам
-    for sheets, df in b_data.items():
-        try:
-            print(f"Открываем таблицу {sheets}")
-            sh = gc.open(sheets)
-            wks = None
             try:
-                wks = sh.worksheet('API WB barcode')
+
+                print("🟢 Получаем доступ к листу 'API'")
+                worksheet_idkt = spreadsheet.worksheet('API')
             except WorksheetNotFound as e:
+                print(f"❌❌ [ОШИБКА] Лист 'API не найден: {e}")
+
+            except APIError as e:
+                print(f"❌❌ [ОШИБКА] Проблема с доступом к листу API: {e}")
+
+            except Exception as e:
                 print(
-                    f"[ОШИБКА] Лист 'API WB barcode' не найден в таблице {sheets}: {e}")
+                    f"❌❌ [НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом API: {e}")
+
+            if worksheet_idkt:
+                try:
+                    print(
+                        '🟢 Объединяем все кабинеты (df[0]) и фильтруем по условию')
+
+                    all_cabinet = pd.concat([df_tuple[0]
+                                            for df_tuple in data.values()], ignore_index=True)
+                    all_cabinet = all_cabinet[~all_cabinet['Артикул WB'].isin(
+                        block)]
+
+                    if all_cabinet.empty:
+                        print("❌❌⚠️ DataFrame all_cabinet пуст — пропущена выгрузка.")
+                    else:
+                        worksheet_idkt.clear()
+
+                        worksheet_idkt.update(
+                            [all_cabinet.columns.values.tolist()] + all_cabinet.values.tolist())
+                        print(
+                            '🟢 В fll_cards в лист API 🚀 — загрузка прошла быстро и мощно ✅')
+                except Exception as e:
+                    print(
+                        f"[ОШИБКА] ❌❌⚠️ Ошибка при формировании или выгрузке all_cabinet в лист API: {e}")
+            else:
+                print("❌❌⚠️ Пропущена выгрузка all_cabinet: лист 'API' не доступен")
+
+        except Exception as e:
+            print('❌❌⚠️',
+                  f"\033[91m[ОШИБКА]\033[0m Общая ошибка при обработке all_cabinet: {e}", sep='\n')
+
+    def load_all_barcode(data_barcode):
+        try:
+            worksheet_barcode = None
+            try:
+                worksheet_barcode = spreadsheet.worksheet('API 2')
+            except WorksheetNotFound as e:
+                print(f"❌❌⚠️ [ОШИБКА] Лист 'API 2' не найден: {e}")
 
             except APIError as e:
                 print(
-                    f"[ОШИБКА] Проблема с доступом к листу 'API WB barcode' в таблице {sheets}: {e}")
+                    f"❌❌⚠️ [ОШИБКА] Проблема с доступом к листу 'API 2': {e}")
 
             except Exception as e:
                 print(
-                    f"[НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом 'API WB barcode' в таблице {sheets}: {e}")
+                    f"❌❌⚠️ [НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом 'API 2': {e}")
 
-            if wks:
+            if worksheet_barcode:
+                print('🟢 Объединяем все баркода (df[1]) из dick_data"')
+                # выгружаем и объединяем все баркода
+                barcode = pd.concat([
+                    df_tuple[1] for df_tuple in data_barcode.values()
+                ], ignore_index=True)
+                print(f" 🟢 Всего баркодов {len(barcode)} 📤")
+
+                worksheet_barcode.clear()
+
+                worksheet_barcode.update([
+                    barcode.columns.values.tolist()
+                ] + barcode.values.tolist()
+                )
+                print(f"📤 Загружено в лист 'API 2': {barcode.shape[0]} строк")
+
+            else:
+                print("❌❌⚠️ Пропущена выгрузка barcode: лист 'API 2' не доступен")
+
+        except Exception as e:
+            print('❌❌⚠️',
+                  f"\033[91m[ОШИБКА]\033[0m при формировании или выгрузке barcode: {e}", sep='\n')
+
+    def group_by_sheet(data):
+        GROUP_MAP = {
+            'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
+            'Фин модель Галилова': ['Галилова'],
+            'Фин модель Мартыненко и Торгмаксимум': ['Мартыненко', 'Торгмаксимум']
+        }
+        grouped_df = defaultdict(pd.DataFrame)
+
+        for name, (_, bcode) in data.items():
+            for sheet, people in GROUP_MAP.items():
+                if name in people:
+                    grouped_df[sheet] = pd.concat(
+                        [grouped_df[sheet], bcode], ignore_index=True)
+        print("📊 Данные сгруппированы! Обработка завершена 🛠️")
+        return grouped_df
+
+    def update_sheet(b_data):
+        # загрузка баркодов по кабинетам
+        for sheets, df in b_data.items():
+            try:
+                print(f"🟢 Открываем таблицу {sheets}")
+                sh = gc.open(sheets)
+                wks = None
                 try:
-                    if df.empty:
-                        print(
-                            f"⚠️ Внимание: DataFrame для '{sheets}' пуст — пропускаем выгрузку.")
-                        continue
-
-                    wks.clear()
-                    wks.update([df.columns.values.tolist()] +
-                               df.values.tolist())
-
+                    wks = sh.worksheet('API WB barcode')
+                except WorksheetNotFound as e:
                     print(
-                        f'Баркод загружен в таблицу {sheets}\nДлина: {df.shape}')
+                        f"❌❌⚠️ [ОШИБКА] Лист 'API WB barcode' не найден в таблице {sheets}: {e}")
+
+                except APIError as e:
+                    print(
+                        f"❌❌⚠️ [ОШИБКА] Проблема с доступом к листу 'API WB barcode' в таблице {sheets}: {e}")
 
                 except Exception as e:
                     print(
-                        f"[ОШИБКА] ❌ Ошибка при выгрузке данных в '{sheets}': {e}")
-            else:
-                print(
-                    f"Данные не выгружены в таблицу {sheets}: лист недотупен")
+                        f"❌❌⚠️ [НЕПРЕДВИДЕННАЯ ОШИБКА] при работе с листом 'API WB barcode' в таблице {sheets}: {e}")
 
-        except Exception as e:
-            print(
-                f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}\n данные не выгружены")
+                if wks:
+                    try:
+                        if df.empty:
+                            print(
+                                f"❌❌⚠️ Внимание: DataFrame для '{sheets}' пуст — пропускаем выгрузку.")
+                            continue
+
+                        wks.clear()
+                        wks.update([df.columns.values.tolist()] +
+                                   df.values.tolist())
+
+                        print(
+                            f'🟢 Баркод загружен в таблицу {sheets}\nДлина: {df.shape} 🫡')
+
+                    except Exception as e:
+                        print(
+                            f"[ОШИБКА] ❌❌⚠️ Ошибка при выгрузке данных в '{sheets}': {e}")
+                else:
+                    print(
+                        f"❌❌⚠️ Данные не выгружены в таблицу {sheets}: лист недотупен")
+
+            except Exception as e:
+                print('❌❌⚠️',
+                      f"\033[91m[ОШИБКА]\033[0m в таблице '{sheets}': {e}\n данные не выгружены", sep='\n')
+
+    block = get_block_nmid()
+    loading_all_cabinets(data=dict_data, block=block)
+    load_all_barcode(data_barcode=dict_data)
+    grouped_data = group_by_sheet(data=dict_data)
+    update_sheet(grouped_data)
 
 
 if __name__ == '__main__':

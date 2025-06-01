@@ -1,16 +1,18 @@
-name: Tariffs box
+name: Run Tariffs for Box Cabinets
+
 
 on:
-    schedule:
-        - cron: '0 10 1 * *'
-
+  schedule:
+    - cron: '0 10 1 * *'
+  workflow_dispatch:
     
-env:
-    Rachel:  ${{ secrets.RACHEL }}
+
 
 jobs:
   Run-Tariff-box:
         runs-on: ubuntu-latest
+        env:
+          Rachel:  ${{ secrets.RACHEL }}
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4

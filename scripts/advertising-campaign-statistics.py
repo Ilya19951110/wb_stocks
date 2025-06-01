@@ -3,21 +3,79 @@ import numpy as np
 import time
 import requests
 import json
-from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import os
 import pandas as pd
 import gspread
-import openpyxl
-from openpyxl.utils.dataframe import dataframe_to_rows
-url = "https://advert-api.wildberries.ru/adv/v1/promotion/adverts"
-url2 = "https://advert-api.wildberries.ru/adv/v2/fullstats"
+
 
 # Выгрузка из аурум СТАТИСТИКА РК
+def query_idkt(hdrs, cabinet):
+    url_cards = "https://content-api.wildberries.ru/content/v2/get/cards/list"
+    DELAY = 0.7
+    all_cards, cursor = [], None
+
+    while True:
+        headers = {"Authorization": hdrs}
+
+        payload = {
+            "settings": {
+                "sort": {"ascending": False},
+                "filter": {"withPhoto": -1},
+                "cursor": {"limit": 100},
+                "period": {
+                    'begin': '2024-01-01',
+                    'end': datetime.now().strftime("%Y-%m-%d")
+                },
+            },
+        }
+
+        if cursor:
+            payload['settings']['cursor'].update(cursor)
+
+        response = requests.post(url_cards, headers=headers, json=[payload])
+        print(
+            f'подключение к content/v2/get/cards/list:\n {response}, {cabinet}')
+
+        if response.status_code != 200:
+            print(f"Ошибка: {response.status_code}")
+            print(response.text)
+            break
+
+        data = response.json()
+
+        if 'cards' not in data or 'cursor' not in data:
+            print("Некорректный формат ответа:")
+            print(json.dumps(data, indent=4, ensure_ascii=False))
+            break
+
+        for card in data['cards']:
+            if isinstance(card, dict):
+                all_cards.append({
+                    key: val for key, val in card.items()
+                    if key not in ['description']
+                })
+
+        if not data or 'cards' not in data or len(data['cards']) < 100:
+            break
+
+        cursor = {
+            "updatedAt": data['cursor']['updatedAt'],
+            "nmID": data['cursor']['nmID']
+        }
+        time.sleep(DELAY)
+
+        print(
+            f"длина all_cards {len(all_cards)}\nСписок карточек {cabinet} выгружен")
+
+    if all_cards:
+        return pd.DataFrame([{'Артикул WB': card['nmID'], 'ID': card['imtID']} for card in all_cards])
 
 
-def campaing_query(hdrs, status, cabinet):
-    idkt = pd.read_csv(f'data/IDKT-{cabinet}.csv')
+def campaing_query(hdrs, status, cabinet, IDKT):
+    url_adverts = "https://advert-api.wildberries.ru/adv/v1/promotion/adverts"
+    url_fullstats = "https://advert-api.wildberries.ru/adv/v2/fullstats"
+
     camp_data = []
 
     date_from = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
@@ -30,8 +88,8 @@ def campaing_query(hdrs, status, cabinet):
         'status': status
     }
 
-    adverts = requests.post(url, headers=headers, params=payload)
-    print(f"{cabinet} подключение к {url}\n{adverts}")
+    adverts = requests.post(url_adverts, headers=headers, params=payload)
+    print(f"{cabinet} подключение к {url_adverts}\n{adverts}")
     if adverts.status_code == 204:
         print(f"Нет данных (204) для {cabinet}, статус {status}")
         return pd.DataFrame()
@@ -45,7 +103,7 @@ def campaing_query(hdrs, status, cabinet):
         params = [{'id': c['advertId'], 'interval': {
             'begin': date_from, 'end': date_to}} for c in camp]
 
-    fullstats = requests.post(url2, headers=headers, json=params)
+    fullstats = requests.post(url_fullstats, headers=headers, json=params)
 
     if fullstats.status_code == 200:
         print(f"Статус  {fullstats}")
@@ -136,7 +194,7 @@ def campaing_query(hdrs, status, cabinet):
 
             result = pd.merge(
                 left=group_df,
-                right=idkt,
+                right=IDKT,
                 left_on='Артикул WB',
                 right_on='Артикул WB',
                 how='left',
@@ -152,11 +210,8 @@ def campaing_query(hdrs, status, cabinet):
             ]
 
             result = result.reindex(
-                columns=['ID КТ'] + result.columns.drop(['ID КТ']).tolist())
+                columns=['ID'] + result.columns.drop(['ID']).tolist())
 
-            result = result.rename(columns={
-                'ID КТ': 'ID'
-            })
             result['Артикул WB'] = result['Артикул WB'].astype(int)
 
             result['ID'] = result['ID'].astype(int)
@@ -166,7 +221,7 @@ def campaing_query(hdrs, status, cabinet):
             for col in num_col:
                 result[col] = result[col].fillna(0)
 
-            print(f'Кампания {status} {cabinet} сохранена!')
+            print(f'✅ Кампания {status} {cabinet} сохранена!')
 
             result = result.filter([
                 'ID', 'Неделя', 'Расход,Р'
@@ -181,35 +236,40 @@ def campaing_query(hdrs, status, cabinet):
 
 
 def save_to_gh(dict_data):
-    gs = gspread.service_account(
-        filename=r'C:\Users\Ilya\OneDrive\Рабочий стол\my_project\myanaliticmp-0617169ebf44.json')
+    GROUP_MAP = {
+        'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
+        'Фин модель Галилова': ['Галилова'],
+        'Фин модель Мартыненко и Торгмаксимум': ['Мартыненко', 'Торгмаксимум']
+    }
 
-    data = defaultdict(pd.DataFrame)
+    def goup_by_sheet(data, MAP):
+        result = defaultdict(pd.DataFrame)
 
-    sheet = 'API WB РК'
+        for name, df in data.items():
+            for sheet, people in MAP.items():
+                if name in people:
+                    result[sheet] = pd.concat(
+                        [result[sheet], df], ignore_index=True)
 
-    for name, df in dict_data.items():
-        if name in ['Азарья', 'Рахель', 'Михаил']:
-            data['Фин модель Иосифовы Р А М'] = pd.concat(
-                [data['Фин модель Иосифовы Р А М'], df], ignore_index=True)
+        print('🎉 Данные сгруппированы!')
+        return result
 
-        if name in ['Галилова']:
-            data['Фин модель Галилова'] = pd.concat(
-                [data['Фин модель Галилова'], df])
+    def update_sheet(sheet_df, sheet_name='API WB РК'):
+        gs = gspread.service_account(
+            filename=r'key.json')
 
-        if name in ['Мартыненко', 'Торгмаксимум']:
-            data['Фин модель Мартыненко и Торгмаксимум'] = pd.concat(
-                [data['Фин модель Мартыненко и Торгмаксимум'], df], ignore_index=True)
+        for name, df in sheet_df.items():
+            sh = gs.open(name)
+            worksheet = sh.worksheet(sheet_name)
 
-    for name, df in data.items():
-        sh = gs.open(name)
-        worksheet = sh.worksheet(sheet)
+            worksheet.update(
+                range_name=f"A{len(worksheet.get_all_values())+1}",
+                values=df.values.tolist()
+            )
+        print('✅ данные выгружены в гугл таблицу!')
 
-        worksheet.update(
-            range_name=f"A{len(worksheet.get_all_values())+1}",
-            values=df.values.tolist()
-        )
-    print('кабинеты выгружены в гугл таблицу!')
+    grouped = goup_by_sheet(dict_data, MAP=GROUP_MAP)
+    update_sheet(grouped)
 
 
 if __name__ == '__main__':
@@ -218,18 +278,19 @@ if __name__ == '__main__':
 
     begin = time.time()
     all_iosifovy = {
-        'Азарья': os.getenv('Azarya'),
-        'Михаил': os.getenv('Michael'),
-        'Рахель': os.getenv('Rachel'),
-        'Галилова': os.getenv('Galilova'),
-        'Торгмаксимум': os.getenv('TORGMAKSIMUM'),
-        'Мартыненко': os.getenv('Martynenko')
+        'Азарья': os.getenv('Azarya').strip(),
+        'Михаил': os.getenv('Michael').strip(),
+        'Рахель': os.getenv('Rachel').strip(),
+        'Галилова': os.getenv('Galilova').strip(),
+        'Торгмаксимум': os.getenv('TORGMAKSIMUM').strip(),
+        'Мартыненко': os.getenv('Martynenko').strip()
     }
 
     for name, val in all_iosifovy.items():
-        df_9 = campaing_query(hdrs=val, status=9, cabinet=name)
-        time.sleep(60)
-        df_11 = campaing_query(hdrs=val, status=11, cabinet=name)
+        idkt = query_idkt(cabinet=name, hdrs=val)
+        df_9 = campaing_query(hdrs=val, status=9, cabinet=name, IDKT=idkt)
+        time.sleep(60)  # пауза, чтобы не превысить лимит запросов
+        df_11 = campaing_query(hdrs=val, status=11, cabinet=name, IDKT=idkt)
 
         goup = pd.concat([
             df_9, df_11
@@ -239,10 +300,10 @@ if __name__ == '__main__':
             'ID', 'Неделя',
         ])['Расход,Р'].sum().reset_index()
 
-    for name, df in campaing_data.items():
-        print(f"Проверка {name}: {len(df)} строк")
+    print(*[f"Проверка {name}: {len(df)} строк" for name,
+          df in campaing_data.items()], sep='\n')
 
     save_to_gh(campaing_data)
 
     end = time.time()
-    print(f"Время выполнения программы:\n{(end-begin)/60}")
+    print(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")

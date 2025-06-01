@@ -1,44 +1,83 @@
-# name: Salles Funnel run every Monday at 7 am
-
-# on:
-#     schedule:
-#         - cron: '0 7 * * 1'
+name: Weekly Salles + Advert + Galilova (Mon 7am)
 
 
-# env:
-#     Azarya: {{ secrets.AZARYA }}
-#     Michael: {{ secrets.MICHAEL }}
-#     Rachel: {{ secrets.RACHEL }}
-#     Galilova: {{ secrets.GALILOVA }}
-#     TORGMAKSIMUM: {{ secrets.TORGMAKSIMUM }}
-#     Martynenko: {{ secrets.MARTYNENKO }}
-#     Sergey: {{ secrets.SERGEY }}
+on:
+    schedule:
+        - cron: '0 7 * * 1'
+    workflow_dispatch:
 
-# # проверка
+env:
+    Azarya: ${{ secrets.AZARYA }}
+    Michael:  ${{ secrets.MICHAEL }}
+    Rachel:  ${{ secrets.RACHEL }}
+    Galilova:  ${{ secrets.GALILOVA }}
+    TORGMAKSIMUM:  ${{ secrets.TORGMAKSIMUM }}
+    Martynenko:  ${{ secrets.MARTYNENKO }}
+    Sergey:  ${{ secrets.SERGEY }}
 
-# jobs:
-#     salles-job:
-    
-#         Salles-Run:
-#             runs-on: ubuntu-latest
-#             steps:
-#                 - name: Checkout Code
-#                   uses: actions/checkout@v4
-#                 - name: Set up Python
-#                   uses: actions/setup-python@v4
-#                   with:
-#                   python-version: '3.10'
-#                 - name:  Create data directory
-#                   run: mkdir -p data
-#                 - name: Debug - Workflow started
-#                   run: echo "Workflow started at $(date)"
-#                 - name: Install Dependencies # workflow update to trigger action
-#                   run: pip install -r requirements.txt
-#                 - name:  Decode Google Service Account Key (from base64)
-#                   run: echo "{{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
-#                 - name: Run Salles funnel
-#                   run: python scripts/salles-funnel.py
+# проверка
+
+jobs:
+    salles-job:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.10'
+            - name:  Create data directory
+              run: mkdir -p data
+            - name: Debug - Workflow started
+              run: echo "Workflow started at $(date)"
+            - name: Install Dependencies # workflow update to trigger action
+              run: pip install -r requirements.txt
+            - name:  Decode Google Service Account Key (from base64)
+              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+            - name: Run Salles funnel
+              run: python scripts/salles-funnel.py
      
-#     advertising-job:
-#         advertising-Run:
+    advertising-job:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.10'
+            - name:  Create data directory
+              run: mkdir -p data
+            - name: Debug - Workflow started
+              run: echo "Workflow started at $(date)"
+            - name: Install Dependencies # workflow update to trigger action
+              run: pip install -r requirements.txt
+            - name:  Decode Google Service Account Key (from base64)
+              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+            - name: Run Advertising Campaign
+              run: python scripts/advertising-campaign-statistics.py
+
+    Galilova-job:
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+            - name: Set up Python
+              uses: actions/setup-python@v4
+              with:
+                python-version: '3.10'
+            - name:  Create data directory
+              run: mkdir -p data
+            - name: Debug - Workflow started
+              run: echo "Workflow started at $(date)"
+            - name: Install Dependencies # workflow update to trigger action
+              run: pip install -r requirements.txt
+            - name:  Decode Google Service Account Key (from base64)
+              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+            - name: Run Advertising Galilova Campaign
+              run: python scripts/Galilova-advertising.py
 
