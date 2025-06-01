@@ -50,7 +50,7 @@ def tariffs_for_boxes():
 
     sheets.batch_clear(['A:H'])
     set_with_dataframe(
-        sheets, box, include_column_header=False, include_index=True)
+        sheets, box, include_column_header=True, include_index=False)
 
 
 if __name__ == '__main__':
