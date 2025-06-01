@@ -15,7 +15,7 @@ def tariffs_for_boxes():
     sheets = spreadsheet.worksheet('API(Тарифы коробов)')
 
     headers = {
-        "Authorization": os.getenv('Rachel')
+        "Authorization": os.getenv('Rachel').strip()
     }
 
     params = {
