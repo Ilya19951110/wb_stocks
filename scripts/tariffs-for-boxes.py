@@ -48,6 +48,7 @@ def tariffs_for_boxes():
     box[target_col] = box[target_col].apply(
         pd.to_numeric, errors='coerce').fillna(0)
 
+    sheets.batch_clear(['A:H'])
     set_with_dataframe(
         sheets, box, include_column_header=False, include_index=True)
 
