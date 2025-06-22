@@ -28,4 +28,4 @@ jobs:
               run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
             - name: Run directory_wb_oz
-              run: python scripts/directory_wb_and_oz.py
+              run: python -m scripts.directory_wb_and_oz
