@@ -1,31 +1,40 @@
 name: WB Directory and OZ Directory
 
-
 on:
-    schedule:
-        - cron: '0 * * * *'
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 env:
-    TG_TOKEN: ${{ secrets.TG_TOKEN }}
-    MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
+  TG_TOKEN: ${{ secrets.TG_TOKEN }}
+  MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
 jobs:
-    Run-WB-OZ-Directory:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Code
-              uses: actions/checkout@v4
+  Run-WB-OZ-Directory:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-            - name: Set up Python
-              uses: actions/setup-python@v4
-              with:
-                python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-            - name: Install Dependencies # workflow update to trigger action
-              run: pip install -r requirements.txt
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
 
-            - name:  Decode Google Service Account Key (from base64)
-              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
-            - name: Run directory_wb_oz
-              run: python -m scripts.directory_wb_and_oz
+      - name: Decode Google Service Account Key (from base64)
+        run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+
+      - name: Debug directory (временно)
+        run: |
+          pwd
+          ls -la
+          ls -la scripts
+
+      - name: Run directory_wb_oz
+        run: python -m scripts.directory_wb_and_oz
