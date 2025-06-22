@@ -5,7 +5,7 @@ from scripts import run_cabinet
 from functools import partial
 from datetime import datetime
 from scripts.setup_logger import make_logger
-from scripts.telegram_logger import send_tg_messege
+from scripts.telegram_logger import send_tg_message
 from scripts.upload_stocks import save_in_google_sheet
 from scripts.universal_main import main
 
@@ -218,7 +218,7 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
 
 
 if __name__ == '__main__':
-    send_tg_messege(
+    send_tg_message(
         f"🏁 Скрипт запущен 'get_stocks': {datetime.now():%Y-%m-%d %H:%M:%S}")
     begin = time.time()
 

@@ -1,7 +1,7 @@
 
 from dotenv import load_dotenv
 from scripts.setup_logger import make_logger
-from scripts.telegram_logger import send_tg_messege
+from scripts.telegram_logger import send_tg_message
 import pandas as pd
 import json
 import time
@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
     from scripts.upload_to_google_sheet import save_in_gsh
     from scripts.universal_main import main
-    send_tg_messege(
+    send_tg_message(
         f"🏁 Скрипт запущен 'report_detail': {datetime.now():%Y-%m-%d %H:%M:%S}")
     begin = time.time()
 

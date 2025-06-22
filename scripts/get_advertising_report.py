@@ -8,7 +8,7 @@ import pandas as pd
 from scripts import run_cabinet
 import asyncio
 from scripts.setup_logger import make_logger
-from scripts.telegram_logger import send_tg_messege
+from scripts.telegram_logger import send_tg_message
 logger = make_logger(__name__)
 
 
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     # from test_run import test_run_cabiten
     from scripts.upload_to_google_sheet import save_in_gsh
     from scripts.universal_main import main
-    send_tg_messege(
+    send_tg_message(
         f"🏁 Скрипт запущен 'campaign_query': {datetime.now():%Y-%m-%d %H:%M:%S}")
     begin = time.time()
 
