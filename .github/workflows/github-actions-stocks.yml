@@ -1,8 +1,8 @@
-name: wb idkt stocks
+name: Run wb Stocks
 
 on:
     schedule:
-        - cron: '0 5 * * *'
+        - cron: '0 3 * * *'
     workflow_dispatch:
 
 
@@ -11,30 +11,43 @@ env:
     Michael: ${{ secrets.MICHAEL }}
     Rachel: ${{ secrets.RACHEL }}
     Galilova: ${{ secrets.GALILOVA }}
-    TORGMAKSIMUM: ${{ secrets.TORGMAKSIMUM }}
     Martynenko: ${{ secrets.MARTYNENKO }}
-    Sergey: ${{ secrets.SERGEY }}
-
+    TG_TOKEN: ${{ secrets.TG_TOKEN }}
+    MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 # проверка
 
 jobs:
-    idkt-Run:
+    Stocks-Run:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout Code
               uses: actions/checkout@v4
+
             - name: Set up Python
               uses: actions/setup-python@v4
               with:
                 python-version: '3.10'
+
             - name:  Create data directory
               run: mkdir -p data
+
             - name: Debug - Workflow started
               run: echo "Workflow started at $(date)"
+
             - name: Install Dependencies # workflow update to trigger action
               run: pip install -r requirements.txt
+
             - name:  Decode Google Service Account Key (from base64)
               run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
-            - name: Run iidkt
-              run: python scripts/iidkt.py
+
+            - name: Run Stocks
+              run: python scripts/get_supplier_stocks.py
+
+            - name: Commit cache updates (if any)
+              run: |
+                git config --global user.email "bot@github.com"
+                git config --global user.name "GitHub Actions Bot"
+                git add cache/*.pkl
+                git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
+                git push
           

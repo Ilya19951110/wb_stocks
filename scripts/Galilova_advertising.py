@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 import os
 import time
-
+from scripts.gspread_client import get_gspread_client
 #  Таблица менеджера. Галилова
 
 
@@ -70,7 +70,7 @@ def read_to_json(data, parent_key='', sep='_'):
     return dict(items)
 
 
-def funck():
+def galilova_sales_weekly_agg():
 
     data = [read_to_json(item) for item in funnel_sales_Galilova()]
     df = pd.DataFrame(data)
@@ -139,9 +139,7 @@ def funck():
 
 def manager_table(data):
 
-    gs = gspread.service_account(
-        filename='key.json'
-    )
+    gs = get_gspread_client()
 
     sh = gs.open('Таблица менеджера. Галилова')
     sheet = sh.worksheet('Артикулы, для запроса API')
@@ -159,5 +157,5 @@ def manager_table(data):
 
 if __name__ == '__main__':
 
-    combain = funck()
+    combain = galilova_sales_weekly_agg()
     manager_table(combain)

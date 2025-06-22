@@ -4,11 +4,12 @@ import requests
 import os
 import pandas as pd
 import gspread
+from scripts.gspread_client import get_gspread_client
 
 
 def tariffs_for_boxes():
 
-    gs = gspread.service_account(filename='key.json')
+    gs = get_gspread_client()
     url = "https://common-api.wildberries.ru/api/v1/tariffs/box"
 
     spreadsheet = gs.open('Ассортиментная матрица. Полная')

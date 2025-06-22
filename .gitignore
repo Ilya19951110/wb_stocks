@@ -1,0 +1,5 @@
+.env
+myanaliticmp-0617169ebf44.json
+__pycache__
+test_run.py
+.pytest_cache
