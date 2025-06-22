@@ -22,7 +22,7 @@ class TelegramHandler(logging.Handler):
             print(f"❌ Ошибка отправки лога в Telegram: {e}")
 
 
-def send_tg_messege(text: str):
+def send_tg_message(text: str):
     token = os.getenv('TG_TOKEN')
     chat_id = os.getenv('MY_TG_CHAT_ID')
 

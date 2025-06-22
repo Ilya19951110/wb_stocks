@@ -83,7 +83,7 @@
 🧑‍💻 Автор: Илья
 """
 
-from scripts.telegram_logger import send_tg_messege
+from scripts.telegram_logger import send_tg_message
 from scripts.setup_logger import make_logger
 from scripts.gspread_client import get_gspread_client
 from gspread_dataframe import set_with_dataframe
@@ -234,7 +234,7 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
 
 if __name__ == '__main__':
-    send_tg_messege(
+    send_tg_message(
         f"🏁 Скрипт запущен 'req_directory_wb_and_oz': {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     result_dict, oz_sheet, oz_barcode_sheet, wb_sheet, gs = request_oz_and_wb_product_range_matrix()
