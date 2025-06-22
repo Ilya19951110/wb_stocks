@@ -1,53 +1,50 @@
 name: Run wb Stocks
 
 on:
-    schedule:
-        - cron: '0 3 * * *'
-    workflow_dispatch:
-
+  schedule:
+    - cron: '0 3 * * *'  # Ежедневно в 6:00 по МСК (UTC+3)
+  workflow_dispatch:
 
 env:
-    Azarya: ${{ secrets.AZARYA }}
-    Michael: ${{ secrets.MICHAEL }}
-    Rachel: ${{ secrets.RACHEL }}
-    Galilova: ${{ secrets.GALILOVA }}
-    Martynenko: ${{ secrets.MARTYNENKO }}
-    TG_TOKEN: ${{ secrets.TG_TOKEN }}
-    MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
-# проверка
+  Azarya: ${{ secrets.AZARYA }}
+  Michael: ${{ secrets.MICHAEL }}
+  Rachel: ${{ secrets.RACHEL }}
+  Galilova: ${{ secrets.GALILOVA }}
+  Martynenko: ${{ secrets.MARTYNENKO }}
+  TG_TOKEN: ${{ secrets.TG_TOKEN }}
+  MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
 jobs:
-    Stocks-Run:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Code
-              uses: actions/checkout@v4
+  Stocks-Run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-            - name: Set up Python
-              uses: actions/setup-python@v4
-              with:
-                python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-            - name:  Create data directory
-              run: mkdir -p data
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
 
-            - name: Debug - Workflow started
-              run: echo "Workflow started at $(date)"
+      - name: Set PYTHONPATH
+        run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
-            - name: Install Dependencies # workflow update to trigger action
-              run: pip install -r requirements.txt
+      - name: Create data directory
+        run: mkdir -p data
 
-            - name:  Decode Google Service Account Key (from base64)
-              run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+      - name: Decode Google Service Account Key
+        run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
-            - name: Run Stocks
-              run: python scripts/get_supplier_stocks.py
+      - name: Run WB Supplier Stocks
+        run: python -m scripts.get_supplier_stocks
 
-            - name: Commit cache updates (if any)
-              run: |
-                git config --global user.email "bot@github.com"
-                git config --global user.name "GitHub Actions Bot"
-                git add cache/*.pkl
-                git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
-                git push
-          
+      - name: Commit cache updates (if any)
+        run: |
+          git config --global user.email "bot@github.com"
+          git config --global user.name "GitHub Actions Bot"
+          git add cache/*.pkl || true
+          git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
+          git push || echo "No push needed"
