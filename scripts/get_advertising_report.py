@@ -32,8 +32,8 @@ async def campaign_query(api, name, session):
 
     camp_data, advert_sp = [], []
 
-    date_from = (datetime.now()-timedelta(days=7)).strftime('%Y-%m-%d')
-    date_to = (datetime.now()-timedelta(days=1)).strftime('%Y-%m-%d')
+    date_from = (datetime.now()-timedelta(days=8)).strftime('%Y-%m-%d')
+    date_to = (datetime.now()-timedelta(days=2)).strftime('%Y-%m-%d')
 
     headers = {'Authorization': api}
 
@@ -71,7 +71,7 @@ async def campaign_query(api, name, session):
             return pd.DataFrame()
 
         logger.info(
-            f"✅✅ Получено {len(camp)} кампаний для {name}".upper())
+            f"✅✅ Получено {len(advert_df)} кампаний для {name}".upper())
 
     params = [{'id': c, 'interval': {
         'begin': date_from, 'end': date_to}}for c in advert_df['advertId']]
@@ -223,6 +223,6 @@ if __name__ == '__main__':
         cache_name="test_cache.pkl"
     ))
 
-    save_in_gsh(dict_data=data, wks_name='API WB РК')
+    save_in_gsh(dict_data=data, worksheet_name='API WB РК')
     end = time.time()
     print(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")

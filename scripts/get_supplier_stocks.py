@@ -220,6 +220,7 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
 if __name__ == '__main__':
     send_tg_message(
         f"🏁 Скрипт запущен 'get_stocks': {datetime.now():%Y-%m-%d %H:%M:%S}")
+
     begin = time.time()
 
     result_data = asyncio.run(main(

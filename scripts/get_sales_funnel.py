@@ -183,7 +183,7 @@ if __name__ == '__main__':
         cache_name="test_cache.pkl"
     ))
 
-    save_in_gsh(dict_data=data, wks_name='API WB Воронка')
+    save_in_gsh(dict_data=data, worksheet_name='API WB Воронка')
 
     end = time.time()
     print(f"⏱ Выполнено за {(end - begin)/60:.2f} минут")

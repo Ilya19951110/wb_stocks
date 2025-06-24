@@ -1,15 +1,15 @@
 from scripts.gspread_client import get_gspread_client
-from collections import defaultdict
-import gspread
-from gspread.exceptions import WorksheetNotFound, APIError
-import pandas as pd
 from scripts.setup_logger import make_logger
-from scripts.telegram_logger import TelegramHandler
+from collections import defaultdict
+from gspread.exceptions import WorksheetNotFound, APIError
+from gspread_dataframe import set_with_dataframe
+import pandas as pd
+
 
 logger = make_logger(__name__, use_telegram=True)
 
 
-def save_in_google_sheet(dict_data):
+def save_in_google_sheet(dict_data: dict[str, tuple[pd.DataFrame, pd.DataFrame]]):
     """Выгружает данные из dict_data в Google Sheets по нескольким листам."""
     # сервис аккаунт гугл
     gc = get_gspread_client()
@@ -67,9 +67,7 @@ def save_in_google_sheet(dict_data):
             logger.error(f"при получении block_nmid: {e} ❌❌")
             return set()
 
-    # Создание рабочего листа
-
-    def loading_all_cabinets(data, block):
+    def loading_all_cabinets(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]], block: set[int]):
         """Объединяет все df_tuple[0], фильтрует и пишет в лист 'API'.
 
         df_tuple[0] - основной дата фрейм с остатками и idkt
@@ -109,6 +107,14 @@ def save_in_google_sheet(dict_data):
                 else:
                     worksheet_idkt.clear()
 
+                    set_with_dataframe(
+                        worksheet_idkt,
+                        all_cabinet,
+                        col=1,
+                        row=1,
+                        include_column_header=True,
+                        include_index=False
+                    )
                     worksheet_idkt.update(
                         [all_cabinet.columns.values.tolist()] +
                         all_cabinet.values.tolist()
@@ -126,7 +132,7 @@ def save_in_google_sheet(dict_data):
             logger.warning(
                 "❌❌⚠️ Пропущена выгрузка all_cabinet: лист 'API' не доступен")
 
-    def load_all_barcode(data_barcode):
+    def load_all_barcode(data_barcode: dict[str, tuple[pd.DataFrame, pd.DataFrame]]):
         """Объединяет все df_tuple[1] и пишет в лист 'API 2'.
 
         df_tuple[1] - это дф со всеми баркодами всех кабинетов
@@ -164,7 +170,7 @@ def save_in_google_sheet(dict_data):
             logger.error(
                 "❌❌⚠️ Пропущена выгрузка barcode: лист 'API 2' не доступен")
 
-    def group_by_sheet(data):
+    def group_by_sheet(data: dict[str, tuple[pd.DataFrame, pd.DataFrame]]):
         """Группирует barcode по заранее заданным группам."""
 
         GROUP_MAP = {
@@ -177,6 +183,7 @@ def save_in_google_sheet(dict_data):
         for name, (_, bcode) in data.items():
             for sheet, people in GROUP_MAP.items():
                 if name in people:
+
                     grouped_df[sheet] = pd.concat(
                         [grouped_df[sheet], bcode], ignore_index=True)
 
@@ -208,9 +215,17 @@ def save_in_google_sheet(dict_data):
                                 f"❌❌⚠️ Внимание: DataFrame для '{sheets}' пуст — пропускаем выгрузку.")
                             continue
 
-                        wks.clear()
-                        wks.update([df.columns.values.tolist()] +
-                                   df.values.tolist())
+                        logger.info("🧹 Очищаем только столбцы A–C")
+                        wks.batch_clear(["A:C"])
+
+                        set_with_dataframe(
+                            wks,
+                            df,
+                            col=1,
+                            row=1,
+                            include_column_header=True,
+                            include_index=False
+                        )
 
                         logger.info(
                             f'🟢 Баркод загружен в таблицу {sheets}\nДлина: {df.shape} 🫡')
