@@ -8,6 +8,7 @@ from scripts.setup_logger import make_logger
 from scripts.telegram_logger import send_tg_message
 from scripts.upload_stocks import save_in_google_sheet
 from scripts.universal_main import main
+import pickle
 
 logger = make_logger(__name__, use_telegram=False)
 
@@ -92,6 +93,22 @@ async def get_stocks(session, name, api):
 
 
 def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
+
+    try:
+        logger.warning('📂 Читаем папку cache')
+
+        with open(f"cache/{name}_cards", 'rb') as f:
+            df_idkt = pickle.load(f)
+
+        important_cols = ['Артикул WB', 'Наименование', 'Размер', 'Баркод']
+        short_df = df[important_cols].head(5)
+
+        logger.warning(
+            f"📊 DF (сокращённый):\n{short_df.to_string(index=False)}")
+
+    except Exception as e:
+        logger.error(f"❌ Ошибка чтения chace:\n{e}")
+
     try:
         logger.info(
             "📊 Приводим типы данных в столбцах [Артикул WB, Баркод, Размер, ID KT]...")
