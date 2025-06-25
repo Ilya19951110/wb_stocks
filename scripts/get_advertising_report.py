@@ -32,8 +32,8 @@ async def campaign_query(api, name, session):
 
     camp_data, advert_sp = [], []
 
-    date_from = (datetime.now()-timedelta(days=8)).strftime('%Y-%m-%d')
-    date_to = (datetime.now()-timedelta(days=2)).strftime('%Y-%m-%d')
+    date_from = (datetime.now()-timedelta(days=7)).strftime('%Y-%m-%d')
+    date_to = (datetime.now()-timedelta(days=1)).strftime('%Y-%m-%d')
 
     headers = {'Authorization': api}
 
