@@ -111,7 +111,7 @@ async def get_cards(session, name, api):
         f"💾 Готовлюсь сохранить {name}_cards — строк: {res_idkt_save.shape[0]}")
 
     os.makedirs("cache", exist_ok=True)
-    with open(f"cache/{name}_cards", 'wb') as f:
+    with open(f"cache/{name}_cards.pkl", 'wb') as f:
         pickle.dump(res_idkt_save, f)
 
     logger.info(f"✅ Сохранён файл cache/{name}_cards")
