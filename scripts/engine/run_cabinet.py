@@ -1,10 +1,12 @@
 
 from scripts.pipelines.get_cards_list import get_cards
+from scripts.utils.setup_logger import make_logger
+from dotenv import load_dotenv
+from typing import Optional
 import pandas as pd
 import aiohttp
-from dotenv import load_dotenv
-from scripts.setup_logger import make_logger
-from typing import Optional
+
+
 load_dotenv()
 # Проверяем пустой ли дата фрейм
 logger = make_logger(__name__)

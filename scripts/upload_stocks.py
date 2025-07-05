@@ -1,5 +1,5 @@
-from scripts.gspread_client import get_gspread_client
-from scripts.setup_logger import make_logger
+from scripts.utilts.gspread_client import get_gspread_client
+from scripts.utilts.setup_logger import make_logger
 from collections import defaultdict
 from gspread.exceptions import WorksheetNotFound, APIError
 from gspread_dataframe import set_with_dataframe

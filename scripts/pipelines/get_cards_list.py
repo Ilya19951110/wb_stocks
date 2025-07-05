@@ -1,9 +1,9 @@
+from scripts.utils.setup_logger import make_logger
+from datetime import datetime
 import pandas as pd
 import asyncio
-from scripts.utilts.setup_logger import make_logger
-from datetime import datetime
-import os
 import pickle
+import os
 
 
 async def get_cards(session, name, api):

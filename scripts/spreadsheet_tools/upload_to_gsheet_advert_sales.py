@@ -44,20 +44,14 @@
         save_in_gsh(dict_data=результаты_по_кабинетам, worksheet_name="Статистика")
     """
 
-
-import gspread
+from scripts.utils.config.factory import get_group_map
+from scripts.utils.gspread_client import get_gspread_client
 import pandas as pd
-from scripts.gspread_client import get_gspread_client
 
 
-def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str):
-    GROUP_MAP = {
-        'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
-        'Фин модель Галилова': ['Галилова'],
-        'Фин модель Мартыненко': ['Мартыненко', 'Торгмаксимум']
-    }
+def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None:
 
-    def goup_by_sheet(data, MAP):
+    def goup_by_sheet(data: dict[str, pd.DataFrame], MAP: dict[str, list[str]]) -> dict[str, pd.DataFrame]:
         result = {}
 
         for table, people in MAP.items():
@@ -71,28 +65,28 @@ def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str):
         print('🚀🚀 Данные сгруппированы!')
         return result
 
-    def update_sheet(group: dict[str, pd.DataFrame], worksheet_name: str):
+    def update_sheet(group: dict[str, pd.DataFrame], worksheet_name: str) -> None:
         gs = get_gspread_client()
 
         for name, df in group.items():
             sh = gs.open(name)
             worksheet = sh.worksheet(worksheet_name)
 
+            existing = worksheet.get_all_values()
+            start_row = len(existing) + 1 if existing else 1
+
             current_rows = worksheet.row_count
             current_cols = worksheet.col_count
 
-            req_rows = len(df)
+            req_rows = len(df) + start_row
             req_cols = df.shape[1]
 
-            if req_cols > current_cols or (req_rows+1) > current_rows:
+            if req_cols > current_cols or req_rows > current_rows:
 
                 worksheet.resize(
                     rows=max(req_rows, current_rows),
                     cols=max(req_cols, current_cols)
                 )
-
-            existing = worksheet.get_all_values()
-            start_row = len(existing) + 1 if existing else 1
 
             print(
                 f"📤 Кабинет {name} Добавляю {len(df)} строк в таблицу '{worksheet_name}' начиная с A{start_row}")
@@ -103,5 +97,5 @@ def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str):
 
         print('📤 Данные выгружены в гугл таблицу!🚀🚀')
 
-    grouped = goup_by_sheet(data=dict_data, MAP=GROUP_MAP)
+    grouped = goup_by_sheet(data=dict_data, MAP=get_group_map())
     update_sheet(grouped, worksheet_name=worksheet_name)

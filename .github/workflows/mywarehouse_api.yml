@@ -1,12 +1,12 @@
-name: Run transfer from AM in AM OZ
+name: Run Get stocks mywarehouse api
 
 on:
   schedule:
-    - cron: '0 4 * * *'  # Ежедневно в 7:00 МСК (UTC+3)
+    - cron: '0 5 * * *'  # Ежедневно в 7:00 МСК (UTC+3)
   workflow_dispatch:
 
 jobs:
-  transfer-wb-oz:
+  my-warehouse-run:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,5 +27,5 @@ jobs:
     - name: Decode Google Service Account Key
       run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
-    - name: Run Transfer Script
-      run: python -m scripts.price_transfer_in_oz
+    - name: Run Mywarehouse 
+      run: python -m scripts.pipelines.my_werehouse.get_warehouse_api

@@ -1,8 +1,8 @@
-name: WB Directory and OZ Directory
+name: WB Directory and OZ Directory and MyWarehouse and price transfer_am_in_oz integrations
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 6 * * *'
   workflow_dispatch:
 
 env:
@@ -37,4 +37,10 @@ jobs:
           ls -la scripts
 
       - name: Run directory_wb_oz
-        run: python -m scripts.directory_wb_and_oz
+        run: python -m scripts.integrations.directory_wb_and_oz
+
+      - name: Run mywerehouse in cabinet table
+        run: python -m scripts.integrations.split_and_upload_myWarehouse_sheets
+
+      - name: Run Transfer Script
+        run: python -m scripts.integrations.price_transfer_in_oz

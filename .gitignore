@@ -3,3 +3,8 @@ myanaliticmp-0617169ebf44.json
 __pycache__
 test_run.py
 .pytest_cache
+tests
+upload_stcoks_old.py
+Galilova_advertising.py
+cache/*.pkl
+advert_id.json

@@ -1,4 +1,4 @@
-name: Weekly Sales + Advert + Galilova (Mon 7am)
+name: Weekly Sales + Advert (Mon 7am)
 
 on:
   schedule:
@@ -11,6 +11,7 @@ env:
   Rachel:  ${{ secrets.RACHEL }}
   Galilova:  ${{ secrets.GALILOVA }}
   Martynenko:  ${{ secrets.MARTYNENKO }}
+  Melikhov: ${{ secrets.Melikhov }}
   TG_TOKEN: ${{ secrets.TG_TOKEN }}
   MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
@@ -41,7 +42,7 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
       - name: Run Sales Funnel Script
-        run: python -m scripts.get_sales_funnel
+        run: python -m scripts.pipelines.get_sales_funnel
 
       - name: Commit cache updates (if any)
         run: |
@@ -73,7 +74,7 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
       - name: Run Advertising Campaign Script
-        run: python -m scripts.get_advertising_report
+        run: python -m scripts.pipelines.get_advertising_report
 
       - name: Commit cache updates (if any)
         run: |
@@ -83,26 +84,4 @@ jobs:
           git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
           git push || echo "No push needed"
 
-  galilova-job:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
-
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
-
-      - name: Decode Google Service Account Key
-        run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
-
-      - name: Run Galilova Advertising Script
-        run: python -m scripts.Galilova_advertising

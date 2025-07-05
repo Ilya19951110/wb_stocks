@@ -11,6 +11,7 @@ env:
   Rachel: ${{ secrets.RACHEL }}
   Galilova: ${{ secrets.GALILOVA }}
   Martynenko: ${{ secrets.MARTYNENKO }}
+  Melikhov: ${{ secrets.Melikhov }}
   TG_TOKEN: ${{ secrets.TG_TOKEN }}
   MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
@@ -39,7 +40,7 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
       - name: Run WB Supplier Stocks
-        run: python -m scripts.get_supplier_stocks
+        run: python -m scripts.pipelines.get_supplier_stocks
 
       - name: Commit cache updates (if any)
         run: |

@@ -1,12 +1,13 @@
-from scripts.utilts.gspread_client import get_gspread_client
+from scripts.utils.gspread_client import get_gspread_client
 from gspread_dataframe import set_with_dataframe
-from scripts.setup_logger import make_logger
+from scripts.utils.setup_logger import make_logger
 import pandas as pd
+
 
 logger = make_logger(__name__, use_telegram=True)
 
 
-def price_transfer_from_am_in_am_oz(sheet_name='Справочник WB'):
+def price_transfer_from_am_in_am_oz(sheet_name='Справочник WB') -> None:
     # Берем данные из листа 'Справочник WB' в таблице 'Ассортиментная матрица. Полная'
     # и переносим их в такой же лист другой таблицы ('OZON')
 

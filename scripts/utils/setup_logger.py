@@ -1,8 +1,9 @@
+from scripts.utils.telegram_logger import TelegramHandler
+from dotenv import load_dotenv
 import colorlog
 import logging
 import os
-from scripts.utilts.telegram_logger import TelegramHandler
-from dotenv import load_dotenv
+
 load_dotenv()
 
 

@@ -1,27 +1,32 @@
-import gspread
+from scripts.spreadsheet_tools.upload_to_gsheet_advert_sales import save_in_gsh
+from scripts.engine.run_cabinet import execute_run_cabinet
+from scripts.utils.telegram_logger import send_tg_message
+from scripts.utils.setup_logger import make_logger
+from scripts.engine.universal_main import main
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from functools import partial
 import pandas as pd
-import json
-import pandas as pd
-import requests
-import os
+import asyncio
 import time
-from scripts.gspread_client import get_gspread_client
-#  Таблица менеджера. Галилова
 
 
-def funnel_sales_Galilova():
-    stop, page, url = 21, 1, 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail'
-    all_data = []
+load_dotenv()
 
+logger = make_logger(__name__)
+
+
+async def report_detail(name, api, session):
+
+    stop, page, all_data = 21, 1, []
+    url = 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail'
     while True:
 
         headers = {
-            'Authorization': os.getenv('Galilova').strip(),
+            'Authorization': api,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
         }
-
         params = {
 
             'timezone': 'Europe/Moscow',
@@ -36,44 +41,58 @@ def funnel_sales_Galilova():
             },
             'page': page
         }
-        res = requests.post(url, headers=headers, json=params)
-        print(f"подключение к Galilova: {res}")
+        try:
+            async with session.post(url, headers=headers, json=params) as result:
+                logger.info(f"{name} подключение {result.status}")
 
-        result = res.json()
+                if result.status != 200:
+                    logger.error(f"Ошибка запроса: {result.status}")
+                    break
 
-        cards = result['data']['cards']
-        all_data.extend(cards)
-        page += 1
+                detail = await result.json()
+        except Exception as e:
+            logger.error(f"❌❌  Произошла ошибка при запросе к {name}: {e}")
 
-        print(
-            f'Получено {len(cards)} записей кабинета Galilova. Всего: {len(all_data)}')
-        if len(cards) < 1000:
-            break
+        else:
+            cards = detail.get('data', {}).get('cards', [])
 
-        print(f'Спим {stop} сек')
-        time.sleep(stop)
+            if not cards:
+                break
+
+            all_data.extend(cards)
+
+            logger.info(
+                f'Получено {len(cards)} записей кабинета {name}. Всего: {len(all_data)}')
+            if len(cards) < 1000:
+                break
+
+            page += 1
+            logger.info(f'Спим {stop} сек')
+
+            await asyncio.sleep(stop)
 
     return all_data
 
 
-def read_to_json(data, parent_key='', sep='_'):
-    print(data)
-    items = []
+def get_current_week_sales_df(sales, ID, name):
 
-    for k, v in data.items():
-        new_key = f"{parent_key}{sep}{k}" if parent_key else k
-        if isinstance(v, dict):
-            items.extend(read_to_json(v, new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
+    def read_to_json(data, parent_key='', sep='_'):
 
-    return dict(items)
+        items = []
 
+        for k, v in data.items():
+            new_key = f"{parent_key}{sep}{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(read_to_json(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
 
-def galilova_sales_weekly_agg():
+        return dict(items)
 
-    data = [read_to_json(item) for item in funnel_sales_Galilova()]
+    data = [read_to_json(item) for item in sales]
     df = pd.DataFrame(data)
+
+    assert isinstance(df, pd.DataFrame), "Входной df должен быть DataFrame"
 
     columns_rus = [
         'Артикул WB', 'Артикул поставщика', 'Бренд', 'ID категории', 'Название категории', 'Начало текущего периода', 'Конец текущего периода', 'Просмотры карточки', 'Добавления в корзину',
@@ -92,9 +111,8 @@ def galilova_sales_weekly_agg():
     date_col = ['Начало текущего периода', 'Конец текущего периода',
                 'Начало предыдущего периода', 'Конец предыдущего периода']
 
-    for col in date_col:
-        df[col] = pd.to_datetime(
-            df[col], format='%Y-%m-%d  %H:%M:%S', errors='coerce').dt.date
+    df[date_col] = df[date_col].apply(
+        pd.to_datetime, errors='coerce').apply(lambda x: x.dt.date)
 
     current_week_col = df.columns[:df.columns.get_loc(
         'Начало предыдущего периода')].tolist() + df.columns[-3:].tolist()
@@ -109,53 +127,62 @@ def galilova_sales_weekly_agg():
     current_week['Начало текущего периода'] = pd.to_datetime(
         current_week['Начало текущего периода']).dt.date
 
-    print(f"до группировки {len(current_week)}")
-    current_week = current_week.drop_duplicates()
+    final_df = pd.merge(
+        current_week,
+        ID,
+        left_on='Артикул WB',
+        right_on='Артикул WB',
+        how='left',
+        indicator=True
+    )
 
-    current_week = current_week.rename(columns={
+    final_df['Кабинет'] = name
+    final_df['ID KT'] = final_df['ID KT'].fillna(0)
+
+    final_df = final_df.drop_duplicates()
+    # ID KT
+    final_df = final_df.rename(columns={
+        'ID KT': 'ID',
         'Номнед': 'Неделя',
         'Просмотры карточки': 'Переходы в карточку',
         'Добавления в корзину': 'Положили в корзину',
         'Количество заказов': 'Заказали, шт',
         'Количество выкупов': 'Выкупили, шт',
         'Количество отмен': 'Отменили, шт',
-        'Сумма заказов (руб)': 'Заказали на сумму, ₽',
+        'Сумма заказов (руб)': 'Заказали на сумму, руб',
 
     }).filter([
-        'Артикул WB', 'Неделя', 'Переходы в карточку',	'Положили в корзину',	'Заказали, шт',	'Выкупили, шт', 'Отменили, шт',	'Заказали на сумму, ₽',
+        'ID', 'Неделя', 'Переходы в карточку',	'Положили в корзину',	'Заказали, шт',	'Выкупили, шт', 'Отменили, шт',	'Заказали на сумму, руб',
     ]).groupby([
-        'Артикул WB', 'Неделя',
+        'ID', 'Неделя',
     ]).agg({
         'Переходы в карточку': 'sum',
         'Положили в корзину': 'sum',
         'Заказали, шт': 'sum',
         'Выкупили, шт': 'sum',
         'Отменили, шт': 'sum',
-        'Заказали на сумму, ₽': 'sum',
+        'Заказали на сумму, руб': 'sum',
     }).reset_index()
 
-    return current_week
+    logger.info(final_df.head(5))
 
-
-def manager_table(data):
-
-    gs = get_gspread_client()
-
-    sh = gs.open('Таблица менеджера. Галилова')
-    sheet = sh.worksheet('Артикулы, для запроса API')
-    sheet_sales = sh.worksheet('API WB Воронка')
-
-    filtered_nmID = data[data['Артикул WB'].isin(
-        pd.Series(sheet.col_values(1)).astype(int))].reset_index(drop=True)
-
-    sheet_sales.update(
-        range_name=f"A{len(sheet_sales.get_all_values())+1}",
-        values=filtered_nmID.values.tolist()
-    )
-    print(f"Данные в таблицу {sheet_sales} выгружены!")
+    return final_df
 
 
 if __name__ == '__main__':
 
-    combain = galilova_sales_weekly_agg()
-    manager_table(combain)
+    send_tg_message(
+        f"🏁 Скрипт запущен 'report_detail': {datetime.now():%Y-%m-%d %H:%M:%S}")
+    begin = time.time()
+
+    data = asyncio.run(main(
+        run_funck=partial(execute_run_cabinet,
+                          func_name='report_detail'),
+        postprocess_func=get_current_week_sales_df,
+        cache_name="test_cache.pkl"
+    ))
+
+    save_in_gsh(dict_data=data, worksheet_name='API WB Воронка')
+
+    end = time.time()
+    print(f"⏱ Выполнено за {(end - begin)/60:.2f} минут")

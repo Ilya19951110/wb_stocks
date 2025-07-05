@@ -1,8 +1,10 @@
 
+from scripts.spreadsheet_tools.push_all_cabinet import push_concat_all_cabinet_stocks_to_sheets
+from scripts.utils.request_block_nmId import get_block_nmId
+from scripts.spreadsheet_tools.update_barcode_by_tables import update_barcode
+from scripts.utils.telegram_logger import send_tg_message
 from scripts.engine.run_cabinet import execute_run_cabinet
-from scripts.utilts.setup_logger import make_logger
-from scripts.utilts.telegram_logger import send_tg_message
-from scripts.upload_stocks import save_in_google_sheet
+from scripts.utils.setup_logger import make_logger
 from scripts.engine.universal_main import main
 from functools import partial
 from datetime import datetime
@@ -10,6 +12,7 @@ import pandas as pd
 import asyncio
 import time
 import pickle
+
 
 logger = make_logger(__name__, use_telegram=False)
 
@@ -33,12 +36,25 @@ async def get_stocks(session, name, api):
 
     except Exception as e:
         logger.error(f"❌❌  Произошла ошибка при вызове: {e}")
-        return pd.DataFrame()
+        return pd.DataFrame(columns=['nmId', 'barcode'])
     else:
         if not result:
-            logger.error(f"⚠️ Пустой ответ от API для {name}")
-            return pd.DataFrame()
+            logger.warning(f"⚠️ Пустой ответ от API для {name}")
+            result_error = pd.DataFrame([{
+                'Артикул WB': 0,
+                'Справка': 'пусто',
+                'Бренд': 'пусто',
+                'Размер': 'пусто',
+                'Итого остатки': 0,
+                'Баркод': 0,
+                'Цена': 0,
+                'Скидка': 0,
+                'Артикул поставщика': 0,
+            }])
+            logger.warning(
+                f"⚠️ Для кабинета {name} создан шаблон пустого DataFrame остатков (stocks пустой)")
 
+            return result_error
         data_stoks = pd.DataFrame(result)
     # 1. Создаем основную таблицу с остатками
 
@@ -101,11 +117,11 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
         with open(f"cache/{name}_cards", 'rb') as f:
             df_idkt = pickle.load(f)
 
-        important_cols = ['Артикул WB', 'Наименование', 'Размер', 'Баркод']
-        short_df = df[important_cols].head(5)
+        important_cols = ['Артикул WB', 'Бренд']
+        short_df = stocks[important_cols].head(5)
 
-        logger.warning(
-            f"📊 DF (сокращённый):\n{short_df.to_string(index=False)}")
+        logger.info(
+            f"📊 DF (сокращённый stocks {name}):\n{short_df.to_string(index=False)}")
 
     except Exception as e:
         logger.error(f"❌ Ошибка чтения chace:\n{e}")
@@ -128,7 +144,7 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
         logger.info("✅ Типы данных успешно приведены!")
     except Exception as e:
         logger.error(
-            f"❌ Не удалось привести типы данных: {e}")
+            f"❌ Не удалось привести типы данных {name}: {e}")
         # Объединяем две таблицы остатки цепляем к idkt
     try:
         logger.info("🔗 Выполняем объединение таблиц (merge)...")
@@ -150,7 +166,8 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
         logger.info("🧹 Начинаем финальную очистку и обработку данных...")
         # Удаляем не нужные столбцы
         result = result.drop(columns=[col for col in result.columns if col.endswith('_stocks')]+['Справка', 'warehouseName',
-                                                                                                 'quantity', 'inWayToClient', 'inWayFromClient', 'category', 'subject', 'isRealization', 'SCCode', 'isSupply'])
+                                                                                                 'quantity', 'inWayToClient', 'inWayFromClient',
+                                                                                                 'category', 'subject', 'isRealization', 'SCCode', 'isSupply'], errors='ignore')
 
         # удаляем суффиксы _IDKT у столбцов, которые остались
         result.columns = [
@@ -193,6 +210,10 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
             'Артикул WB', 'Баркод', 'Размер'
         ])
 
+        seller_article = result.filter([
+            'Артикул WB', 'Баркод', 'Артикул поставщика', 'Размер'
+        ])
+
         result = result.drop(columns=[
             'Баркод', 'Размер'
         ])
@@ -232,10 +253,13 @@ def merge_and_transform_stocks_with_idkt(stocks, IDKT, name):
         logger.error(
             f"❌ Ошибка в процессе обработки данных: {e}")
 
-    return result, barcode_nmid
+    return result, seller_article, barcode_nmid
 
 
 if __name__ == '__main__':
+    # запуск
+    # python -m scripts.pipelines.get_supplier_stocks
+
     send_tg_message(
         f"🏁 Скрипт запущен 'get_stocks': {datetime.now():%Y-%m-%d %H:%M:%S}")
 
@@ -248,7 +272,30 @@ if __name__ == '__main__':
         cache_name="test_cache.pkl"
     ))
 
-    save_in_google_sheet(result_data)
+    stocks_list = [stocks[0] for stocks in result_data.values()]
+
+    article_seller = [barcode[1] for barcode in result_data.values()]
+
+    logger.info(
+        f"📦 Подготовлено {len(stocks_list)} датафреймов для выгрузки остатков")
+    push_concat_all_cabinet_stocks_to_sheets(
+        data=stocks_list,
+        sheet_name='API',
+        block_nmid=get_block_nmId()
+    )
+
+    logger.info(
+        f"📦 Подготовлено {len(article_seller)} датафреймов для выгрузки баркодов")
+    push_concat_all_cabinet_stocks_to_sheets(
+        data=article_seller,
+        sheet_name='API 2',
+        clear_range=['A:D']
+    )
+
+    update_barcode(
+        data=result_data,
+
+    )
     end = time.time()
 
     print(f"😎 Время выполнения: {(end-begin)/60:,.2f}")

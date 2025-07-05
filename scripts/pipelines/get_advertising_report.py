@@ -1,13 +1,14 @@
-
-from scripts.setup_logger import make_logger
-from scripts.utilts.telegram_logger import send_tg_message
+from scripts.spreadsheet_tools.upload_to_gsheet_advert_sales import save_in_gsh
+from scripts.utils.telegram_logger import send_tg_message
+from scripts.engine.run_cabinet import execute_run_cabinet
+from scripts.engine.universal_main import main
+from scripts.utils.setup_logger import make_logger
 from datetime import datetime, timedelta
-from scripts import run_cabinet
 from functools import partial
 import pandas as pd
 import asyncio
 import time
-
+import numpy as np
 
 logger = make_logger(__name__)
 
@@ -158,7 +159,7 @@ def group_advert_and_id(camp_df, ID, name):
     camp_df['ID'] = pd.to_numeric(
         camp_df['ID'], errors='coerce').fillna(0).astype(int)
 
-    result = camp_df.groupby(['ID', 'Неделя']).agg({
+    result = camp_df.groupby(['ID', 'Неделя', 'Артикул WB']).agg({
         'views': 'sum',
         'clicks': 'sum',
         'atbs': 'sum',
@@ -180,7 +181,15 @@ def group_advert_and_id(camp_df, ID, name):
         'expenses': 'Расход,Р'
     })
 
-    result = result.filter(['ID', 'Неделя', 'Расход,Р'])
+    result['CTR'] = np.where(
+        result['Просмотры'] == 0,
+        0,
+        (
+            result['Переходы'] / result['Просмотры']
+        ).round(2)
+    )
+
+    result = result.filter(['ID', 'Неделя', 'Расход,Р', 'Артикул WB', 'CTR'])
 
     logger.info(
         f"🎯 Агрегация по ID выполнена для {name}!\n {result['Расход,Р'].sum():,.2f}"
@@ -206,18 +215,13 @@ if __name__ == '__main__':
 
 
     """
-    # from scripts.run_cabinet import run_cabinet_advert,
-    # from test_run import test_run_cabiten
-    from scripts.utilts.upload_to_google_sheet import save_in_gsh
-    from scripts.universal_main import main
+
     send_tg_message(
         f"🏁 Скрипт запущен 'campaign_query': {datetime.now():%Y-%m-%d %H:%M:%S}")
     begin = time.time()
 
-    # run_func_with_params = partial(test_run_cabiten, func_name='report_detail')
-
     data = asyncio.run(main(
-        run_funck=partial(run_cabinet.execute_run_cabinet,
+        run_funck=partial(execute_run_cabinet,
                           func_name='campaign_query'),
         postprocess_func=group_advert_and_id,
         cache_name="test_cache.pkl"

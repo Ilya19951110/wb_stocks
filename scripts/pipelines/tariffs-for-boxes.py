@@ -1,10 +1,8 @@
+from scripts.utils.gspread_client import get_gspread_client
 from gspread_dataframe import set_with_dataframe
-import json
+import pandas as pd
 import requests
 import os
-import pandas as pd
-import gspread
-from scripts.gspread_client import get_gspread_client
 
 
 def tariffs_for_boxes():

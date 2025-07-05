@@ -1,7 +1,7 @@
-import os
+from scripts.utils.setup_logger import make_logger
 import gspread
-from scripts.setup_logger import make_logger
-from scripts.telegram_logger import TelegramHandler
+import os
+
 
 logger = make_logger(__name__, use_telegram=True)
 

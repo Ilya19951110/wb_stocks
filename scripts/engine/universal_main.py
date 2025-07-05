@@ -1,9 +1,10 @@
+from scripts.utils.setup_logger import make_logger
+from scripts.utils.config.factory import get_all_api_request
 from dotenv import load_dotenv
-from scripts.setup_logger import make_logger
 from collections import defaultdict
-import pickle
 import aiohttp
 import asyncio
+import pickle
 import os
 
 load_dotenv()
@@ -17,15 +18,8 @@ async def main(run_funck, postprocess_func=None, cabinet=None, cache_name="test_
     result, failed = {}, {}
 
     if cabinet is None:
+        all_api_request = get_all_api_request()
 
-        all_api_request = {
-            'Азарья': os.getenv('Azarya').strip(),
-            'Михаил': os.getenv('Michael').strip(),
-            'Рахель': os.getenv('Rachel').strip(),
-            'Галилова': os.getenv('Galilova').strip(),
-            'Мартыненко': os.getenv('Martynenko').strip(),
-
-        }
     else:
         all_api_request = cabinet
 

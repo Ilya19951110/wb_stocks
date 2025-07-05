@@ -82,14 +82,13 @@
 
 🧑‍💻 Автор: Илья
 """
-
-from scripts.telegram_logger import send_tg_message
-from scripts.setup_logger import make_logger
-from scripts.gspread_client import get_gspread_client
+from scripts.utils.gspread_client import get_gspread_client
+from scripts.utils.telegram_logger import send_tg_message
+from scripts.utils.setup_logger import make_logger
 from gspread_dataframe import set_with_dataframe
 from datetime import datetime
-import gspread
 import pandas as pd
+import gspread
 
 
 logger = make_logger(__name__, use_telegram=True)
@@ -124,6 +123,7 @@ def request_oz_and_wb_product_range_matrix(sheet_directory_wb='Справочн�
     # преобразуем данные из таблицы Ассортиментная матрица OZON из листа Справочник OZ
     df_directory_oz = pd.DataFrame(
         get_date_directory_oz[1:], columns=get_date_directory_oz[0])
+
     # преобразуем Ассортиментная матрица OZON Баркода OZ
     df_barcode = pd.DataFrame(
         get_date_barcode_oz[1:], columns=get_date_barcode_oz[0])
