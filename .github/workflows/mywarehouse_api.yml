@@ -5,6 +5,8 @@ on:
     - cron: '0 5 * * *'  # Ежедневно в 7:00 МСК (UTC+3)
   workflow_dispatch:
 
+env:
+  my_warehouse: ${{ secrets.my_warehouse }}
 jobs:
   my-warehouse-run:
     runs-on: ubuntu-latest
