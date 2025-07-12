@@ -1,3 +1,4 @@
+from scripts.utils.config.factory import get_requests_url_wb
 from scripts.utils.setup_logger import make_logger
 from datetime import datetime
 import pandas as pd
@@ -9,7 +10,7 @@ import os
 async def get_cards(session, name, api):
     logger = make_logger(__name__, use_telegram=True)
     DELAY = 3
-    url_cards = "https://content-api.wildberries.ru/content/v2/get/cards/list"
+    url_cards = get_requests_url_wb()
     all_cards, rows, cursor = [], [], None
 
     while True:
@@ -32,7 +33,7 @@ async def get_cards(session, name, api):
             payload["settings"]["cursor"].update(cursor)
 
         try:
-            async with session.post(url_cards, headers=headers, json=payload) as response:
+            async with session.post(url_cards['card_list'], headers=headers, json=payload) as response:
 
                 if response.status != 200:
                     error_text = await response.text()

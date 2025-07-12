@@ -1,4 +1,6 @@
 from scripts.spreadsheet_tools.upload_to_gsheet_advert_sales import save_in_gsh
+from scripts.postprocessors.group_advert import group_advert_and_id
+from scripts.utils.config.factory import get_requests_url_wb, sheets_names
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.engine.run_cabinet import execute_run_cabinet
 from scripts.engine.universal_main import main
@@ -6,14 +8,15 @@ from scripts.utils.setup_logger import make_logger
 from datetime import datetime, timedelta
 from functools import partial
 import pandas as pd
+import aiohttp
 import asyncio
 import time
-import numpy as np
+
 
 logger = make_logger(__name__)
 
 
-async def campaign_query(api, name, session):
+async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) -> pd.DataFrame:
     """
     campaign_query:
         Функция отправляет запрос к api wb и возвращает ответ от сервера:
@@ -27,9 +30,9 @@ async def campaign_query(api, name, session):
 
 
     """
+    url_count = get_requests_url_wb()
 
-    url_count = 'https://advert-api.wildberries.ru/adv/v1/promotion/count'
-    url2 = "https://advert-api.wildberries.ru/adv/v2/fullstats"
+    url_fullstats = get_requests_url_wb()
 
     camp_data, advert_sp = [], []
 
@@ -38,7 +41,7 @@ async def campaign_query(api, name, session):
 
     headers = {'Authorization': api}
 
-    async with session.get(url_count, headers=headers) as adverts:
+    async with session.get(url_count['promotion_count'], headers=headers) as adverts:
 
         if adverts.status == 204:
             logger.error(
@@ -80,7 +83,7 @@ async def campaign_query(api, name, session):
     logger.info(
         f"📥 Загружаю статистику для {len(params)} кампаний — {name}".upper())
 
-    async with session.post(url2, headers=headers, json=params) as stats:
+    async with session.post(url_fullstats['advert_fullstats'], headers=headers, json=params) as stats:
         if stats.status != 200:
             error_text = await stats.text()
             raise ValueError(f"⚠️⚠️ Ошибка запроса статистики: {error_text}")
@@ -113,91 +116,6 @@ async def campaign_query(api, name, session):
         return pd.DataFrame()
 
 
-def group_advert_and_id(camp_df, ID, name):
-    """_summary_
-    функция объединяет (merge) и группирует (groupby) два датафрейма, после фильтрует их по столбцам
-
-    Args:
-        camp_df (_type_): DataFrame рекламной кампании за определенный период
-
-        ID (_type_): DataFrame возвращается из функции get_cards() которая находится в файле test.py, которая возвращает все созданные карточки
-                     товаров с idkt (idkt - это id склейки артикулов wb)
-
-        name (_type_): имя кабинета, которое используется для логирования выполнения кода
-
-    Returns:
-        _type_: возвращает DataFrame отфильтрованный по столбцам
-    """
-
-    ID['updatedAt'] = pd.to_datetime(ID['updatedAt'])
-
-    latest_idkt = (
-        ID.sort_values('updatedAt').drop_duplicates(
-            subset='Артикул WB', keep='last').reset_index(drop=True)
-    )
-    camp_df['date'] = pd.to_datetime(camp_df['date']).dt.date
-
-    camp_df['Неделя'] = pd.to_datetime(camp_df['date']).dt.isocalendar().week
-    camp_df = camp_df.rename(columns={'sum': 'expenses'})
-
-    camp_df.drop(columns=['date'], inplace=True)
-
-    logger.info(
-        f"{name}💰 Сумма ДО merge: {camp_df['expenses'].sum():,.2f} ₽\033[0m\n\033[93m🔍 Строк до merge: {len(camp_df)}")
-
-    camp_df = pd.merge(
-        camp_df.rename(columns={'nmId': 'Артикул WB'}),
-        latest_idkt.rename(columns={'ID KT': 'ID'}),
-        left_on='Артикул WB',
-        right_on='Артикул WB',
-        how='left'
-    )
-    # ID KT
-    logger.info(
-        f"💥 Сумма ПОСЛЕ merge: {camp_df['expenses'].sum():,.2f} ₽\033[0m\n\033[93m🔍 Строк после merge: {len(camp_df)}")
-
-    camp_df['ID'] = pd.to_numeric(
-        camp_df['ID'], errors='coerce').fillna(0).astype(int)
-
-    result = camp_df.groupby(['ID', 'Неделя', 'Артикул WB']).agg({
-        'views': 'sum',
-        'clicks': 'sum',
-        'atbs': 'sum',
-        'orders': 'sum',
-        'shks': 'sum',
-        'sum_price': 'sum',
-        'expenses': 'sum'
-    }).reset_index()
-
-    result = result.drop_duplicates()
-
-    result = result.rename(columns={
-        'views': 'Просмотры',
-        'clicks': 'Переходы',
-        'atbs': 'Добавления в корзину',
-        'orders': 'Количество заказов',
-        'shks': 'Количество заказанных товаров',
-        'sum_price': 'Сумма заказов',
-        'expenses': 'Расход,Р'
-    })
-
-    result['CTR'] = np.where(
-        result['Просмотры'] == 0,
-        0,
-        (
-            result['Переходы'] / result['Просмотры']
-        ).round(2)
-    )
-
-    result = result.filter(['ID', 'Неделя', 'Расход,Р', 'Артикул WB', 'CTR'])
-
-    logger.info(
-        f"🎯 Агрегация по ID выполнена для {name}!\n {result['Расход,Р'].sum():,.2f}"
-    )
-
-    return result
-
-
 if __name__ == '__main__':
 
     """
@@ -227,6 +145,8 @@ if __name__ == '__main__':
         cache_name="test_cache.pkl"
     ))
 
-    save_in_gsh(dict_data=data, worksheet_name='API WB РК')
+    worksheet = sheets_names()['api_wb_advert']
+    save_in_gsh(dict_data=data, worksheet_name=worksheet)
+
     end = time.time()
     print(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")

@@ -82,6 +82,7 @@
 
 🧑‍💻 Автор: Илья
 """
+from scripts.utils.config.factory import get_assortment_matrix_complete, get_assortment_matrix_complete_OZON, get_finmodel_to_cabinet_map, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger
@@ -94,22 +95,29 @@ import gspread
 logger = make_logger(__name__, use_telegram=True)
 
 
-def request_oz_and_wb_product_range_matrix(sheet_directory_wb='Справочник WB',
-                                           sheet_directory_oz='Справочник OZ', worksheet_barcode_oz='Баркода OZ'):
+def request_oz_and_wb_product_range_matrix() -> tuple[dict[str, pd.DataFrame], str, str, gspread.client.Client]:
     gs = get_gspread_client()
 
-    table_entrepreneur = {
-        'Фин модель Иосифовы Р А М': ('Gabriel', ['Рахель', 'Михаил', 'Азарья']),
-        'Фин модель Галилова': ('Havva', ['Галилова']),
-        'Фин модель Мартыненко': ('Ucare', ['Мартыненко']),
-    }
+    table_entrepreneur = get_finmodel_to_cabinet_map()
 
-    spreadsheet_wb = gs.open('Ассортиментная матрица. Полная')
-    spreadsheet_oz = gs.open('Ассортиментная матрица OZON')
+    wb_matrix = get_assortment_matrix_complete()
+    oz_matrix = get_assortment_matrix_complete_OZON()
 
-    wb_directory_worksheet = spreadsheet_wb.worksheet(sheet_directory_wb)
-    oz_directory_worksheet = spreadsheet_oz.worksheet(sheet_directory_oz)
-    oz_directory_barcode = spreadsheet_oz.worksheet(worksheet_barcode_oz)
+    spreadsheet_wb = gs.open(wb_matrix)
+    spreadsheet_oz = gs.open(oz_matrix)
+
+    sheet_directory_wb = sheets_names()
+    sheet_directory_oz = sheets_names()
+    worksheet_barcode_oz = sheets_names()
+
+    wb_directory_worksheet = spreadsheet_wb.worksheet(
+        sheet_directory_wb['directory_wb'])
+
+    oz_directory_worksheet = spreadsheet_oz.worksheet(
+        sheet_directory_oz['directory_oz'])
+
+    oz_directory_barcode = spreadsheet_oz.worksheet(
+        worksheet_barcode_oz['barcodes_oz'])
 
     get_date_directory_wb = wb_directory_worksheet.get_all_values()
     get_date_directory_oz = oz_directory_worksheet.get_all_values()

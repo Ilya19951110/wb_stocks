@@ -1,82 +1,107 @@
 import pandas as pd
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.setup_logger import make_logger
-from scripts.utils.config.factory import get_group_map, get_assortment_matrix_complete
+from scripts.utils.config.factory import get_group_map, sheets_names, tables_names
 from gspread_dataframe import set_with_dataframe
+from scripts.utils.telegram_logger import send_tg_message
+
+logger = make_logger(__name__, use_telegram=False)
 
 
-logger = make_logger(__name__, use_telegram=True)
+def upload_mywerehouse_in_gsheets() -> None:
+    """
+    Загружает данные из листа MyWarehouse в одну Google Таблицу в другой.
 
+    Последовательно выполняет:
+    1. Инициализацию клиента Google Sheets (через gspread).
+    2. Чтение данных из листа `API Мой склад` в таблице `Асртиментная матрица полная`.
+    3. Подготовку таблицы `Прибыль поставщики`: очистка существующего листа или создание нового.
+    4. Загрузку считанных данных в соответствующий лист: 'API Мой склад'.
 
-def upload_mywerehouse_in_gsheets(sheet_name='API Мой склад') -> None:
+    Все действия логируются, в случае ошибок отправляются уведомления в Telegram и пишутся исключения в лог.
 
+    Исключения:
+        При любой ошибке происходит логгирование и отправка сообщения в Telegram, но выполнение продолжается по частям.
+
+    Returns:
+        None
+    """
     try:
-
-        table_name = get_assortment_matrix_complete()
+        logger.info("📡 Инициализация GSpread клиента...")
         gs = get_gspread_client()
-        logger.info("🔑 GSpread клиент успешно инициализирован")
 
-        spreadsheet = gs.open(table_name)
-        worksheet = spreadsheet.worksheet(sheet_name)
-        mywarehouse = worksheet.get_all_values()
+        sheet_name = sheets_names()['api_mywarehouse']
 
-        house_df = pd.DataFrame(mywarehouse[1:], columns=mywarehouse[0])
+        logger.info(f"📥 Открытие таблицы-источника: {extract_table}")
+
+        extract_table = tables_names()['wb_matrix_complete']
+        extract_spreadsheet = gs.open(extract_table)
+        extract_wsheet = extract_spreadsheet.worksheet(sheet_name)
+
+        logger.info(f"📄 Чтение данных с листа: {sheet_name}")
+        mywarehouse_data = extract_wsheet.get_all_values()
+
+        mywarehouse_df = pd.DataFrame(
+            mywarehouse_data[1:], columns=mywarehouse_data[0])
 
         logger.info(
-            f"📥 Прочитано {len(house_df)} строк из '{sheet_name}' в '{table_name}'")
-
-    except Exception:
-        logger.exception(
-            "❌ Ошибка при подключении к GSpread или чтении данных")
-        return
-
-    try:
-
-        for table in get_group_map().keys():
-            logger.info(f"📂 Работа с таблицей: '{table}'")
-            sh = gs.open(table)
-
-            work_sheets = [ws.title for ws in sh.worksheets()]
-            logger.info(
-                f"🔎 Проверяю наличие листа: '{sheet_name}' в таблице '{table}'")
-
-            if sheet_name in work_sheets:
-                logger.info("✅ Лист найден — обновляю размер под DataFrame")
-                wsheet = sh.worksheet(sheet_name)
-
-                wsheet.resize(
-                    rows=house_df.shape[0],
-                    cols=house_df.shape[1]
-                )
-            else:
-                logger.warning("🆕 Лист не найден — создаю новый")
-                wsheet = sh.add_worksheet(
-                    title=sheet_name, rows=house_df.shape[0], cols=house_df.shape[1])
-
-    except Exception:
-        logger.exception("💥 Ошибка при обработке таблиц из get_group_map")
+            f"✅ Прочитано: {mywarehouse_df.shape[0]} строк, {mywarehouse_df.shape[1]} колонок")
+    except Exception as e:
+        msg = f"❌ Ошибка при чтении данных из '{sheet_name}': {e}"
+        send_tg_message(msg)
+        logger.exception(msg)
 
     try:
-        logger.info("🧼 Очищаю лист перед загрузкой")
-        wsheet.clear()
 
-        logger.info("📤 Загружаю данные в Google Sheet...")
+        logger.info(
+            f"📦 Открытие таблицы для импорта: '{tables_names()['profit_supplier']}'")
+        import_table = tables_names()['profit_supplier']
+
+        import_spreadsheet = gs.open(import_table)
+
+        if sheet_name in [ws.title for ws in import_spreadsheet.worksheets()]:
+
+            logger.info()
+            import_worksheet = import_spreadsheet.worksheet(sheet_name)
+
+            import_worksheet.clear()
+            logger.info(f"🧹 Лист '{sheet_name}' успешно очищен")
+        else:
+
+            logger.info(f"🆕 Лист '{sheet_name}' не найден — создаю новый")
+
+            import_worksheet = import_spreadsheet.add_worksheet(
+                title=sheet_name,
+                rows=mywarehouse_df.shape[0],
+                cols=mywarehouse_df.shape[1]
+            )
+    except Exception as e:
+        msg = f"❌ Ошибка при подготовке листа '{sheet_name}' в таблице '{import_table}': {e}"
+        send_tg_message(msg)
+        logger.exception(msg)
+
+    try:
+        logger.info(f"✅ Лист '{sheet_name}' создан")
         set_with_dataframe(
-            wsheet,
-            house_df,
+            import_worksheet,
+            mywarehouse_df,
             row=1,
             col=1,
             include_column_header=True,
             include_index=False
         )
 
-        logger.info(f"🎉 Успешно загружено в таблицу: '{table}'")
+        logger.info(
+            f"✅ Успешно загружено: {mywarehouse_df.shape[0]} строк, {mywarehouse_df.shape[1]} колонок в лист '{sheet_name}'")
+    except Exception as e:
+        msg = f"❌ Ошибка при загрузке данных в лист '{sheet_name}': {e}"
+        send_tg_message(msg)
+        logger.exception(msg)
 
-    except Exception:
-        logger.exception("❗ Ошибка при очистке или загрузке данных на лист")
-
-    logger.info("✅ Все данные успешно загружены! 🟢")
+    logger.info("🏁 Загрузка данных MyWarehouse завершена успешно.")
 
 
-upload_mywerehouse_in_gsheets()
+if __name__ == '__main__':
+
+    upload_mywerehouse_in_gsheets()
 # python -m scripts.integrations.split_and_upload_myWarehouse_sheets

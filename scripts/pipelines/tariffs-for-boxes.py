@@ -1,4 +1,5 @@
 from scripts.utils.gspread_client import get_gspread_client
+from scripts.utils.config.factory import get_requests_url_wb
 from gspread_dataframe import set_with_dataframe
 import pandas as pd
 import requests
@@ -8,8 +9,8 @@ import os
 def tariffs_for_boxes():
 
     gs = get_gspread_client()
-    url = "https://common-api.wildberries.ru/api/v1/tariffs/box"
 
+    urls = get_requests_url_wb()
     spreadsheet = gs.open('Ассортиментная матрица. Полная')
     sheets = spreadsheet.worksheet('API(Тарифы коробов)')
 
@@ -21,7 +22,7 @@ def tariffs_for_boxes():
         "date": '2025-01-01'
     }
 
-    res = requests.get(url, headers=headers, params=params)
+    res = requests.get(urls['tariffs_box'], headers=headers, params=params)
     result = res.json()
 
     box = pd.DataFrame(result['response']['data']['warehouseList'])

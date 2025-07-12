@@ -1,4 +1,4 @@
-from scripts.utils.config.factory import get_assortment_matrix_complete, get_assortment_matrix_complete_OZON
+from scripts.utils.config.factory import get_assortment_matrix_complete, get_assortment_matrix_complete_OZON, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 import pandas as pd
 from gspread_dataframe import set_with_dataframe
@@ -8,12 +8,14 @@ from scripts.utils.telegram_logger import send_tg_message
 logger = make_logger(__name__, use_telegram=True)
 
 
-def transfer_wb_barcodes_to_oz_sheet(wsheet='Баркод WB_OZ', clear_range=['A:B']) -> None:
+def transfer_wb_barcodes_to_oz_sheet(clear_range=['A:B']) -> None:
 
     try:
         logger.info("🔌 Подключаюсь к GSpread клиенту...")
 
         gs = get_gspread_client()
+
+        wsheet = sheets_names()['barcodes_wb_oz']
         table_matrix_oz = get_assortment_matrix_complete_OZON()
 
         logger.info(f"🔑 Подключено к таблице OZ: {table_matrix_oz}")

@@ -1,6 +1,6 @@
 import pandas as pd
 from scripts.utils.setup_logger import make_logger
-from scripts.utils.config.factory import get_assortment_matrix_complete
+from scripts.utils.config.factory import get_assortment_matrix_complete, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from gspread_dataframe import set_with_dataframe
 
@@ -8,8 +8,9 @@ from gspread_dataframe import set_with_dataframe
 logger = make_logger(__name__, use_telegram=True)
 
 
-def upload_my_werehouse_df_in_assortment_matrix_full(mywerehouse: pd.DataFrame, clear_range=None, sheet_name='API Мой склад') -> None:
+def upload_my_werehouse_df_in_assortment_matrix_full(mywerehouse: pd.DataFrame, clear_range=None,) -> None:
 
+    sheet_name = sheets_names()['api_mywarehouse']
     if clear_range is None:
         clear_range = ['A:B']
 
@@ -37,7 +38,7 @@ def upload_my_werehouse_df_in_assortment_matrix_full(mywerehouse: pd.DataFrame, 
         logger.info(f'🔎 Проверяю наличие листа: "{sheet_name}"')
 
         if sheet_name in work_sheets:
-            logger.info('📄 Лист найден. Очищаю A:C...')
+            logger.info('📄 Лист найден. Очищаю A:B...')
 
             worksheet = spreadsheet.worksheet(sheet_name)
             worksheet.batch_clear(clear_range)

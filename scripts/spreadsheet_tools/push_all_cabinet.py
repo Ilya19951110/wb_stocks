@@ -1,6 +1,7 @@
 from scripts.utils.request_block_nmId import get_block_nmId
 from scripts.utils.setup_logger import make_logger
 from scripts.utils.gspread_client import get_gspread_client
+from scripts.utils.config.factory import sheets_names, get_assortment_matrix_complete
 from gspread_dataframe import set_with_dataframe
 import pandas as pd
 
@@ -10,12 +11,12 @@ logger = make_logger(__name__, use_telegram=True)
 def push_concat_all_cabinet_stocks_to_sheets(
     data: list[pd.DataFrame],
     sheet_name: str,
-    sh='Ассортиментная матрица. Полная',
     clear_range=None,
     block_nmid=None
-):
+) -> None:
 
     try:
+        sh = get_assortment_matrix_complete()
         logger.info('🔌 Подключаюсь к Google Sheets клиенту...')
 
         gs = get_gspread_client()
@@ -51,14 +52,6 @@ def push_concat_all_cabinet_stocks_to_sheets(
             worksheet.clear()
             logger.info(f"🧼 Полностью очищен лист '{sheet_name}'")
 
-        # set_with_dataframe(
-        #     worksheet,
-        #     df_combined,
-        #     row=1,
-        #     col=1,
-        #     include_column_header=True,
-        #     include_index=False
-        # )
         worksheet.update(
 
             values=[df_combined.columns.values.tolist()] +

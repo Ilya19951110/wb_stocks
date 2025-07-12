@@ -3,14 +3,15 @@ from collections import defaultdict
 from scripts.utils.setup_logger import make_logger
 from scripts.utils.gspread_client import get_gspread_client
 from gspread_dataframe import set_with_dataframe
-from scripts.utils.config.factory import get_group_map
+from scripts.utils.config.factory import get_group_map, sheets_names
 
 logger = make_logger(__name__, use_telegram=True)
 
 
 def update_barcode(data: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]],
-                   sheet_name='API WB barcode', clear_range: list[str] = None) -> None:
+                   clear_range: list[str] = None) -> None:
 
+    sheet_name = sheets_names()['api_wb_barcode']
     MAP = get_group_map()
     grouped_df = defaultdict(pd.DataFrame)
 
@@ -25,7 +26,7 @@ def update_barcode(data: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFram
         logger.exception("❌ Ошибка при подключении к Google Sheets")
         return
 
-    for name, (_, _, barcode) in data.items():
+    for name, (_, barcode) in data.items():
         for sheet, people in MAP.items():
             if name in people:
                 grouped_df[sheet] = pd.concat(

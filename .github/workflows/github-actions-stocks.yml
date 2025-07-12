@@ -1,8 +1,8 @@
-name: Run wb Stocks
+name: Run wb and oz Stocks
 
 on:
   schedule:
-    - cron: '0 3 * * *'  # Ежедневно в 6:00 по МСК (UTC+3)
+    - cron: '0 2 * * *'  # Ежедневно в 5:00 по МСК (UTC+3)
   workflow_dispatch:
 
 env:
@@ -15,8 +15,18 @@ env:
   TG_TOKEN: ${{ secrets.TG_TOKEN }}
   MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
+  HAVVA_Client_id_oz: ${{ secrets.HAVVA_Client_id_oz }}
+  HAVVA_api_key_oz: ${{ secrets.HAVVA_api_key_oz }}
+
+  Gabriel_Client_id_oz: ${{ secrets.Gabriel_Client_id_oz }}
+  Gabriel_api_key_oz: ${{ secrets.Gabriel_api_key_oz }}
+
+  UCARE_Client_id_oz: ${{ secrets.UCARE_Client_id_oz }}
+  UCARE_api_key_oz: ${{ secrets.UCARE_api_key_oz }}
+
+
 jobs:
-  Stocks-Run:
+  Stocks-Run-wb-and-oz:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -33,8 +43,7 @@ jobs:
       - name: Set PYTHONPATH
         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
-      - name: Create data directory
-        run: mkdir -p data
+     
 
       - name: Decode Google Service Account Key
         run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
@@ -42,10 +51,6 @@ jobs:
       - name: Run WB Supplier Stocks
         run: python -m scripts.pipelines.get_supplier_stocks
 
-      - name: Commit cache updates (if any)
-        run: |
-          git config --global user.email "bot@github.com"
-          git config --global user.name "GitHub Actions Bot"
-          git add cache/*.pkl || true
-          git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
-          git push || echo "No push needed"
+      - name: Run OZ Supplier Stocks
+        run: python -m scripts.pipelines_oz.get_stocks_oz
+

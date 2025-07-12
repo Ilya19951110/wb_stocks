@@ -70,12 +70,4 @@ async def main(run_funck, postprocess_func=None, cabinet=None, cache_name="test_
     for name, status in status_report.items():
         logger.info(f"{name:<15} - {status}")
 
-    logger.info(f"Сохраняю данные в cache")
-
-    os.makedirs("cache", exist_ok=True)
-    with open(f"cache/{cache_name}", 'wb') as f:
-        pickle.dump(result, f)
-
-    logger.info('Проверь папку chace в репозитории!!')
-
     return result
