@@ -61,7 +61,8 @@ def upload_mywerehouse_in_gsheets() -> None:
 
         if sheet_name in [ws.title for ws in import_spreadsheet.worksheets()]:
 
-            logger.info()
+            logger.info(f"📄 Лист '{sheet_name}' найден — очищаю содержимое")
+
             import_worksheet = import_spreadsheet.worksheet(sheet_name)
 
             import_worksheet.clear()

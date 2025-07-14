@@ -40,3 +40,29 @@ def send_tg_message(text: str):
 
     except Exception as e:
         print(f"❌ Ошибка при отправке сообщения в Telegram: {e}")
+
+
+def send_photo_to_telegram(image_path: str, caption: str = ""):
+    """
+    Отправка изображения в Telegram-бот.
+    Необходимо, чтобы переменные окружения TG_BOT_TOKEN и TG_CHAT_ID были заданы.
+    """
+    bot_token = os.getenv("TG_TOKEN")
+    chat_id = os.getenv("MY_TG_CHAT_ID")
+
+    if not bot_token or not chat_id:
+        raise ValueError(
+            "TG_BOT_TOKEN или TG_CHAT_ID не заданы в переменных окружения.")
+
+    url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+
+    with open(image_path, 'rb') as photo:
+        response = requests.post(url, data={
+            'chat_id': chat_id,
+            'caption': caption
+        }, files={
+            'photo': photo
+        })
+
+    if response.status_code != 200:
+        raise Exception(f"Ошибка отправки фото: {response.text}")

@@ -106,18 +106,18 @@ def request_oz_and_wb_product_range_matrix() -> tuple[dict[str, pd.DataFrame], s
     spreadsheet_wb = gs.open(wb_matrix)
     spreadsheet_oz = gs.open(oz_matrix)
 
-    sheet_directory_wb = sheets_names()
-    sheet_directory_oz = sheets_names()
-    worksheet_barcode_oz = sheets_names()
+    sheet_directory_wb = sheets_names()['directory_wb']
+    sheet_directory_oz = sheets_names()['directory_oz']
+    worksheet_barcode_oz = sheets_names()['barcodes_oz']
 
     wb_directory_worksheet = spreadsheet_wb.worksheet(
-        sheet_directory_wb['directory_wb'])
+        sheet_directory_wb)
 
     oz_directory_worksheet = spreadsheet_oz.worksheet(
-        sheet_directory_oz['directory_oz'])
+        sheet_directory_oz)
 
     oz_directory_barcode = spreadsheet_oz.worksheet(
-        worksheet_barcode_oz['barcodes_oz'])
+        worksheet_barcode_oz)
 
     get_date_directory_wb = wb_directory_worksheet.get_all_values()
     get_date_directory_oz = oz_directory_worksheet.get_all_values()

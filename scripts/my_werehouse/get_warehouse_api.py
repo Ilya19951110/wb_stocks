@@ -36,6 +36,7 @@ def get_mywerehouse_stocks() -> pd.DataFrame:
 
             if res.status_code != 200:
                 logger.warning(f"⚠️ Ошибка запроса: {res.status_code}")
+                logger.warning(res.text)
                 break
 
             result = res.json()
