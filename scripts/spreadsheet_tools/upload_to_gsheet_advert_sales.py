@@ -1,4 +1,15 @@
-"""
+
+from scripts.utils.telegram_logger import send_tg_message
+from scripts.utils.setup_logger import make_logger
+from scripts.utils.config.factory import get_group_map
+from scripts.utils.gspread_client import get_gspread_client
+import pandas as pd
+
+logger = make_logger(__name__, use_telegram=False)
+
+
+def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None:
+    """
     📤 Сохраняет сгруппированные данные в соответствующие Google Таблицы.
 
     Данные из разных кабинетов (по ключу `dict_data`) группируются по общим итоговым таблицам
@@ -44,25 +55,22 @@
         save_in_gsh(dict_data=результаты_по_кабинетам, worksheet_name="Статистика")
     """
 
-from scripts.utils.config.factory import get_group_map
-from scripts.utils.gspread_client import get_gspread_client
-import pandas as pd
-
-
-def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None:
-
     def goup_by_sheet(data: dict[str, pd.DataFrame], MAP: dict[str, list[str]]) -> dict[str, pd.DataFrame]:
+
+        send_tg_message(
+            f"🚀 Запущена функция `save_in_gsh()` — группировка и выгрузка данных в лист '{worksheet_name}'")
+
         result = {}
 
         for table, people in MAP.items():
             res = [data[name] for name in people if name in data]
 
             if not res:
-                print(f'⚠️ {table}: нет данных для выгрузки')
+                logger.warning(f'⚠️ {table}: нет данных для выгрузки')
                 continue
 
             result[table] = pd.concat(res, ignore_index=True)
-        print('🚀🚀 Данные сгруппированы!')
+        logger.info('🚀🚀 Данные сгруппированы!')
         return result
 
     def update_sheet(group: dict[str, pd.DataFrame], worksheet_name: str) -> None:
@@ -88,14 +96,14 @@ def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None
                     cols=max(req_cols, current_cols)
                 )
 
-            print(
+            logger.info(
                 f"📤 Кабинет {name} Добавляю {len(df)} строк в таблицу '{worksheet_name}' начиная с A{start_row}")
 
             worksheet.update(
                 range_name=f"A{start_row}",
                 values=df.values.tolist())
 
-        print('📤 Данные выгружены в гугл таблицу!🚀🚀')
+        send_tg_message('📤 Данные выгружены в гугл таблицу!🚀🚀')
 
     grouped = goup_by_sheet(data=dict_data, MAP=get_group_map())
     update_sheet(grouped, worksheet_name=worksheet_name)

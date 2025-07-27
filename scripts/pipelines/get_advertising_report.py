@@ -3,6 +3,7 @@ from scripts.postprocessors.group_advert import group_advert_and_id
 from scripts.utils.config.factory import get_requests_url_wb, sheets_names
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.engine.run_cabinet import execute_run_cabinet
+from scripts.utils.telegram_logger import send_tg_message
 from scripts.engine.universal_main import main
 from scripts.utils.setup_logger import make_logger
 from datetime import datetime, timedelta
@@ -13,22 +14,70 @@ import asyncio
 import time
 
 
-logger = make_logger(__name__)
+logger = make_logger(__name__, use_telegram=False)
 
 
 async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) -> pd.DataFrame:
     """
-    campaign_query:
-        Функция отправляет запрос к api wb и возвращает ответ от сервера:
+    📢 Получение рекламной статистики WB по активным кампаниям за последнюю неделю.
 
-    Raises:
-        adverts: получает ответ о созданных рекламных кампаниях с их 'рк id'. 
-        stats: принимает в params id рк и период date_from и date_to. Метод возвращает статистику по рк за заданный пероид 
+    Функция `campaign_query` асинхронно обращается к API Wildberries, чтобы получить:
+    1. Список всех рекламных кампаний (по кабинетам).
+    2. Детальную статистику по дням, приложениям и товарам внутри этих кампаний.
 
-    Returns:
-        _type_: DataFrame, advert_df - возвращает статистику по рк за определенный период преобразованную в DataFrame
+    🚀 Используется в связке с универсальным движком `main()` и функцией `execute_run_cabinet`.
 
+    ────────────────────────────────────────────────────────────
 
+    🔧 Аргументы:
+    -------------
+    api : str
+        Токен авторизации для доступа к API WB (отдельный на каждый кабинет).
+
+    name : str
+        Название кабинета, которое добавляется в итоговый DataFrame как метка.
+
+    session : aiohttp.ClientSession
+        Асинхронная HTTP-сессия для выполнения запросов.
+
+    📤 Возвращает:
+    -------------
+    pd.DataFrame
+        Таблица с полями:
+            - advertId
+            - date
+            - appType (мобильное приложение / веб)
+            - остальные рекламные метрики
+            - Кабинет (имя кабинета)
+
+    🗂️ Используемые ключевые URL:
+    -----------------------------
+    - `promotion_count` — получить список всех активных кампаний.
+    - `advert_fullstats` — получить подробную статистику по всем кампаниям.
+
+    📆 Период:
+    ---------
+    - Текущая неделя: с (сегодня - 7 дней) по (вчера).
+    - Формат: YYYY-MM-DD
+
+    📦 Поведение:
+    ------------
+    - Если нет кампаний: вернёт пустой DataFrame и логгирует предупреждение.
+    - Если API вернёт ошибку: сообщение попадёт в Telegram.
+    - Данные из `fullstats` собираются по дням, приложениям и `nmId`.
+
+    📌 Пример запуска:
+    ------------------
+    asyncio.run(
+        campaign_query(
+            api='Bearer xxxxxx',
+            name='Рахель',
+            session=aiohttp.ClientSession()
+        )
+    )
+
+    🧠 Автор: Илья  
+    🗓 Версия: Июль 2025
     """
     url_count = get_requests_url_wb()
 
@@ -44,15 +93,17 @@ async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) ->
     async with session.get(url_count['promotion_count'], headers=headers) as adverts:
 
         if adverts.status == 204:
-            logger.error(
-                f"⚠️ ⚠️ Из 'campaign_query': Нет данных (204) для {name}")
+            msg = f"⚠️ ⚠️ Из 'campaign_query': Нет данных (204) для {name}"
+            logger.error(msg)
+            send_tg_message(msg)
             return pd.DataFrame()
 
         if adverts.status != 200:
             error_text = await adverts.text()
 
-            logger.error(f"⚠️ ⚠️ Ошибка запроса кампаний: {error_text}")
-            raise ValueError(error_text)
+            msg = f"⚠️ ⚠️ Ошибка запроса кампаний:\n{error_text}"
+            logger.error(msg)
+            raise ValueError(msg)
 
         if adverts.status == 200:
             camp = await adverts.json()
@@ -71,7 +122,9 @@ async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) ->
         advert_df = pd.DataFrame(advert_sp)
 
         if not camp.get('adverts'):
-            logger.warning(f"⚠️ Нет активных кампаний для {name}")
+            msg = f"⚠️ Нет активных кампаний для {name}"
+            logger.warning(msg)
+            send_tg_message(msg)
             return pd.DataFrame()
 
         logger.info(
@@ -86,12 +139,16 @@ async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) ->
     async with session.post(url_fullstats['advert_fullstats'], headers=headers, json=params) as stats:
         if stats.status != 200:
             error_text = await stats.text()
-            raise ValueError(f"⚠️⚠️ Ошибка запроса статистики: {error_text}")
+            msg = f"⚠️⚠️ Ошибка запроса статистики: {error_text}"
+            send_tg_message(msg)
+            raise ValueError(msg)
 
         fullstats = await stats.json()
 
         if not fullstats:
-            logger.warning(f"⚠️ Нет статистики для {name}")
+            msg = f"⚠️ Нет статистики для {name}"
+            logger.warning(msg)
+            send_tg_message(msg)
             return pd.DataFrame()
 
         logger.info(
@@ -110,29 +167,19 @@ async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) ->
 
         camp_df = pd.DataFrame(camp_data)
         camp_df['Кабинет'] = name
+        send_tg_message(
+            f"✅ Рекламная статистика для кабинета '{name}' успешно получена: {len(camp_df)} строк")
+
         return camp_df
+
     else:
-        logger.warning(f"⚠️ Нет данных статистики для {name}")
+        msg = f"⚠️ Нет данных статистики для {name}"
+        logger.warning(msg)
+        send_tg_message(msg)
         return pd.DataFrame()
 
 
 if __name__ == '__main__':
-
-    """
-        data - сохраняет результат выполнения функции main() которая находится в файле universal_main.py
-
-        main() - принимает два аргумента:
-            1. функция run_cabinet_advert, которая выполняет асинхронный запрос, которая находится в файле run_cabinet.py
-            2. Функция group_advert_and_id, которая объединяет и группирует результат выполнения run_cabinet_advert. 
-                 group_advert_and_id находится в файле advertising_campaign_statistics.py
-
-        save_in_gsh() - выгружает результат main(), который хранится в data. Принимает 2 аргумента:
-            1. data - результат main()
-            2. wks_name - имя листа для выгрузки
-        save_in_gsh() находится в файле load_in_gsh.py
-
-
-    """
 
     send_tg_message(
         f"🏁 Скрипт запущен 'campaign_query': {datetime.now():%Y-%m-%d %H:%M:%S}")
@@ -141,12 +188,11 @@ if __name__ == '__main__':
     data = asyncio.run(main(
         run_funck=partial(execute_run_cabinet,
                           func_name='campaign_query'),
-        postprocess_func=group_advert_and_id,
-        cache_name="test_cache.pkl"
+        postprocess_func=group_advert_and_id
     ))
 
     worksheet = sheets_names()['api_wb_advert']
     save_in_gsh(dict_data=data, worksheet_name=worksheet)
 
     end = time.time()
-    print(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")
+    send_tg_message(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")

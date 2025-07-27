@@ -199,7 +199,7 @@ async def get_product_list_stocks(api_key: str, client_id: str, sku: list[int], 
 if __name__ == '__main__':
     start = time.perf_counter()
     send_tg_message("🚀 Старт скрипта 'get_skus_ozon'")
-    # python -m scripts.tests.get_skus_ozon
+    # python -m scripts.pipelines_oz.get_stocks_oz
 
     data_stocks = asyncio.run(main_run_ozon(
         run_func=execute_run_ozon,

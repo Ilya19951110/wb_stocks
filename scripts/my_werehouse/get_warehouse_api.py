@@ -19,6 +19,7 @@ def get_mywerehouse_stocks() -> pd.DataFrame:
         'Authorization': f"Bearer {os.getenv('my_warehouse')}",
 
     }
+    print("🧪 my_warehouse =", os.getenv('my_warehouse'))
 
     werehouse = []
     offset = 0
@@ -95,3 +96,4 @@ if __name__ == '__main__':
 
     upload_my_werehouse_df_in_assortment_matrix_full(
         mywerehouse=werehouse, clear_range=['A:B'])
+# C:\Users\Ilya\OneDrive\Рабочий стол\Iosifovy\scripts\my_werehouse\get_warehouse_api.py

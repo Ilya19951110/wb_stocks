@@ -1,15 +1,17 @@
-from scripts.utils.config.factory import get_assortment_matrix_complete_OZON, sheets_names
+from scripts.utils.config.factory import sheets_names, tables_names
 from scripts.utils.gspread_client import get_gspread_client
-from scripts.utils.setup_logger import make_logger
 from scripts.utils.telegram_logger import send_tg_message
-import pandas as pd
+from scripts.utils.setup_logger import make_logger
 from gspread_dataframe import set_with_dataframe
+from gspread.exceptions import APIError
+import pandas as pd
+import time
 
 
 logger = make_logger(__name__, use_telegram=False)
 
 
-def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M']) -> None:
+def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'], MAX_RETRIES: int = 3, DELAY: int = 10) -> None:
     """
     Загружает данные остатков Ozon в указанные листы Google Таблицы.
 
@@ -47,7 +49,7 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             '📡 Инициализирую GSpread клиента и получаю название таблицы...')
 
         gs = get_gspread_client()
-        table = get_assortment_matrix_complete_OZON()
+        table = tables_names()['oz_matrix_complete']
 
         logger.info(f"✅ Таблица найдена: '{table}'")
 
@@ -69,6 +71,7 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             work_sheets = [ws.title for ws in spreadsheet.worksheets()]
 
             logger.info(f"📌 {name} → Название листа: '{sheet_name}'")
+
         except Exception as e:
             msg = f"❌ {name} → Ошибка при открытии таблицы или листов: {e}"
             send_tg_message(msg)
@@ -96,19 +99,38 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             return
 
         try:
+
             logger.info(f"📤 {name} → Загружаю DataFrame на лист")
 
-            set_with_dataframe(
-                wsheet,
-                df,
-                col=1,
-                row=1,
-                include_column_header=True,
-                include_index=False
-            )
+            for attempt in range(MAX_RETRIES):
+                try:
+
+                    set_with_dataframe(
+                        wsheet,
+                        df,
+                        col=1,
+                        row=1,
+                        include_column_header=True,
+                        include_index=False
+                    )
+
+                    logger.info(
+                        f"✅ {name} → Успешно после {attempt+1} попытки")
+                    break
+
+                except Exception as e:
+                    if '503' in str(e):
+                        logger.warning(
+                            f"⚠️ {name} → 503 от Google, повтор {attempt+1}/{MAX_RETRIES}")
+
+                        time.sleep(DELAY)
+                    else:
+                        raise
 
             logger.info(
                 f"✅ {name} → Успешно загружено: {df.shape[0]} строк, {df.shape[1]} столбцов")
+
+            time.sleep(DELAY)
         except Exception as e:
             msg = f"❌ {name} → Ошибка при загрузке данных: {e}"
             send_tg_message(msg)

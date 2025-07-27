@@ -1,14 +1,63 @@
 from scripts.utils.config.factory import get_requests_url_wb
 from scripts.utils.setup_logger import make_logger
+from scripts.utils.telegram_logger import send_tg_message
 from datetime import datetime
 import pandas as pd
 import asyncio
-import pickle
-import os
+import aiohttp
+
+logger = make_logger(__name__, use_telegram=False)
 
 
-async def get_cards(session, name, api):
-    logger = make_logger(__name__, use_telegram=True)
+async def get_cards(session: aiohttp.ClientSession, name: str, api: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    📦 Получение карточек товаров (ID KT, баркоды, размеры и др.) из кабинета WB.
+
+    Асинхронная функция выполняет постраничный запрос к API Wildberries для получения
+    всех карточек товаров (артикулов WB) с привязкой к внутреннему идентификатору 
+    `ID KT`, баркодами и другими характеристиками.
+
+    Используется для построения справочника товаров и соответствий.
+
+    ───────────────────────────────────────────────────────────────
+
+    🔧 Параметры:
+    ------------
+    session : aiohttp.ClientSession
+        Активная асинхронная сессия для HTTP-запросов.
+
+    name : str
+        Название кабинета (используется в логировании и сообщениях Telegram).
+
+    api : str
+        Токен авторизации WB API для доступа к кабинету.
+
+    📤 Возвращает:
+    --------------
+    Tuple[pd.DataFrame, pd.DataFrame]
+        - Первый DataFrame `res_idkt_save`: таблица соответствий артикулов WB, ID KT, брендов, размеров, баркодов и габаритов.
+        - Второй DataFrame `idkt_nmid`: минимальный справочник `Артикул WB`, `ID KT`, `updatedAt`.
+
+    📌 Формат таблицы `res_idkt_save`:
+    ---------------------------------
+    | Артикул WB | ID KT | Наименование | Бренд | Размер | Баркод | Артикул поставщика | Категория | Фото | Ширина | Высота | Длина |
+
+    🧪 Обработка:
+    ------------
+    - Запрос осуществляется постранично, с поддержкой курсора (updatedAt, nmID).
+    - Удаляется поле `description`, чтобы уменьшить нагрузку.
+    - Фото берётся первое (`photos[0]['big']`), если есть.
+    - Баркоды извлекаются из `sizes -> skus`.
+
+    🚨 Ошибки:
+    ---------
+    - При ошибке запроса отправляется сообщение в Telegram.
+    - Некорректный формат ответа или отсутствие курсора логгируются отдельно.
+    - После каждой страницы — задержка `DELAY` секунд (для избежания rate-limit).
+
+    🧠 Автор: Илья  
+    🗓 Версия: Июль 2025
+    """
     DELAY = 3
     url_cards = get_requests_url_wb()
     all_cards, rows, cursor = [], [], None
@@ -37,13 +86,17 @@ async def get_cards(session, name, api):
 
                 if response.status != 200:
                     error_text = await response.text()
-                    logger.error(
-                        f"⚠️ ⚠️ Ошибка по запросу 'IDKT': {error_text}, {name}")
-                    raise ValueError(error_text)
+
+                    msg = f"⚠️ ⚠️ Ошибка по запросу 'IDKT': {error_text}, {name}"
+                    send_tg_message(msg)
+                    logger.error(msg)
+                    raise ValueError(msg)
 
                 cards_list = await response.json()
         except Exception as e:
-            logger.error(f"❌❌ Произошла ошибка при запросе к {name}: {e}")
+            msg = f"❌❌ Произошла ошибка при запросе к {name}: {e}"
+            logger.error(msg)
+            send_tg_message(msg)
 
         else:
             if 'cards' not in cards_list or 'cursor' not in cards_list:
@@ -64,8 +117,9 @@ async def get_cards(session, name, api):
                     "nmID": cards_list['cursor']['nmID']
                 }
             else:
-                logger.error(
-                    f"⚠️ В ответе от {name} отсутствует 'updatedAt' или 'nmID'")
+                msg = f"⚠️ В ответе от {name} отсутствует 'updatedAt' или 'nmID'"
+                logger.error(msg)
+                send_tg_message(msg)
                 break
 
             logger.info('Спим ⏳⏳⏳')
@@ -110,11 +164,5 @@ async def get_cards(session, name, api):
 
     logger.info(
         f"💾 Готовлюсь сохранить {name}_cards — строк: {res_idkt_save.shape[0]}")
-
-    os.makedirs("cache", exist_ok=True)
-    with open(f"cache/{name}_cards.pkl", 'wb') as f:
-        pickle.dump(res_idkt_save, f)
-
-    logger.info(f"✅ Сохранён файл cache/{name}_cards")
 
     return res_idkt_save, idkt_nmid

@@ -1,11 +1,11 @@
-from scripts.utils.request_block_nmId import get_block_nmId
 from scripts.utils.setup_logger import make_logger
 from scripts.utils.gspread_client import get_gspread_client
-from scripts.utils.config.factory import sheets_names, get_assortment_matrix_complete
-from gspread_dataframe import set_with_dataframe
+from scripts.utils.config.factory import get_assortment_matrix_complete
+from scripts.utils.telegram_logger import send_tg_message
+
 import pandas as pd
 
-logger = make_logger(__name__, use_telegram=True)
+logger = make_logger(__name__, use_telegram=False)
 
 
 def push_concat_all_cabinet_stocks_to_sheets(
@@ -14,7 +14,61 @@ def push_concat_all_cabinet_stocks_to_sheets(
     clear_range=None,
     block_nmid=None
 ) -> None:
+    """
+    📤 Выгрузка объединённых остатков по кабинетам в Google Sheets
 
+    Функция принимает список датафреймов с остатками по кабинетам WB,
+    объединяет их в одну таблицу и выгружает в указанный лист Google Таблицы.
+    Поддерживается опциональная фильтрация по артикулу (блокировка NM ID)
+    и очистка диапазона или всего листа перед вставкой.
+
+    ────────────────────────────────────────────────────────────────────────────
+
+    📥 Аргументы:
+    - data (list[pd.DataFrame]):
+        Список датафреймов с остатками по кабинетам (например, по партнёрам).
+
+    - sheet_name (str):
+        Название листа в Google Таблице, в который будут загружены данные.
+
+    - clear_range (list[str] | None):
+        Опционально. Список диапазонов для частичной очистки (например, ["A1:F100"]).
+        Если не задано — будет очищен весь лист.
+
+    - block_nmid (list[str] | None):
+        Опционально. Список артикулов (NM ID), которые нужно исключить перед загрузкой.
+        Применяется фильтрация по столбцу "Артикул WB".
+
+    ────────────────────────────────────────────────────────────────────────────
+
+    🔁 Алгоритм работы:
+
+    1. Авторизация в Google Sheets.
+    2. Получение таблицы `Ассортиментная матрица. Полная` и листа `sheet_name`.
+    3. Объединение всех датафреймов в один.
+    4. Фильтрация по блок-листу, если указан.
+    5. Очистка листа (весь или по диапазону).
+    6. Загрузка объединённых данных с заголовками.
+    7. Логирование результатов и отправка ошибок в Telegram.
+
+    ────────────────────────────────────────────────────────────────────────────
+
+    🧾 Используемые утилиты:
+    - `get_gspread_client()` → авторизация в Google Sheets
+    - `get_assortment_matrix_complete()` → имя таблицы
+    - `send_tg_message()` → уведомление об ошибках
+    - `make_logger()` → логирование в файл/терминал
+
+    ────────────────────────────────────────────────────────────────────────────
+
+    💡 Особенности:
+    - Если данные пусты, функция всё равно выгрузит только заголовки.
+    - Для выгрузки используется метод `.update()` (быстрее, чем `set_with_dataframe`).
+    - Исключение артикулов (`block_nmid`) применяется только если параметр передан.
+
+    🧑‍💻 Автор: Илья  
+    📅 Версия: Июль 2025
+    """
     try:
         sh = get_assortment_matrix_complete()
         logger.info('🔌 Подключаюсь к Google Sheets клиенту...')
@@ -23,7 +77,9 @@ def push_concat_all_cabinet_stocks_to_sheets(
         logger.info('✅ Успешно подключен к Google Sheets!')
 
     except Exception:
-        logger.exception("❌ Ошибка при подключении к Google Sheets")
+        msg = "❌ Ошибка при подключении к Google Sheets"
+        logger.exception(msg)
+        send_tg_message(msg)
         return
 
     try:
@@ -60,4 +116,6 @@ def push_concat_all_cabinet_stocks_to_sheets(
 
         logger.info(f"✅ Данные успешно выгружены в лист '{sheet_name}'")
     except Exception:
-        logger.exception(f"❌ Ошибка при загрузке данных в лист '{sheet_name}'")
+        msg = f"❌ Ошибка при загрузке данных в лист '{sheet_name}'"
+        logger.exception(msg)
+        send_tg_message(msg)

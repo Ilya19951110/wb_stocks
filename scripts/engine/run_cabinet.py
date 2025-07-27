@@ -1,6 +1,7 @@
 
 from scripts.pipelines.get_cards_list import get_cards
 from scripts.utils.setup_logger import make_logger
+from scripts.utils.telegram_logger import send_tg_message
 from dotenv import load_dotenv
 from typing import Optional
 import pandas as pd
@@ -9,7 +10,7 @@ import aiohttp
 
 load_dotenv()
 # Проверяем пустой ли дата фрейм
-logger = make_logger(__name__)
+logger = make_logger(__name__, use_telegram=False)
 
 
 async def execute_run_cabinet(name: str, api: str,
@@ -83,7 +84,9 @@ async def execute_run_cabinet(name: str, api: str,
             f"✅ get_cards завершён: {name}, {len(ID)} карточек получено")
 
     except Exception as e:
-        logger.error(f"Ошибка запроса IDKT кабинета: {name}: {e}")
+        msg = f"Ошибка запроса IDKT кабинета: {name}: {e}"
+        logger.error(msg)
+        send_tg_message(msg)
         return pd.DataFrame(), pd.DataFrame()
 
     func = allowed[func_name.lower()]
@@ -106,5 +109,7 @@ async def execute_run_cabinet(name: str, api: str,
             return result, ID
 
     except Exception as e:
-        logger.error(f"❌ Ошибка в `{func_name}` для `{name}`: {e}")
+        msg = f"❌ Ошибка в `{func_name}` для `{name}`: {e}"
+        send_tg_message(msg)
+        logger.error(msg)
         return pd.DataFrame(), pd.DataFrame()
