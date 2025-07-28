@@ -1,6 +1,7 @@
 from scripts.spreadsheet_tools.upload_to_gsheet_advert_sales import save_in_gsh
 from scripts.postprocessors.group_advert import group_advert_and_id
 from scripts.utils.config.factory import get_requests_url_wb, sheets_names
+from scripts.utils.config.factory import get_all_api_request
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.engine.run_cabinet import execute_run_cabinet
 from scripts.utils.telegram_logger import send_tg_message
@@ -188,7 +189,9 @@ if __name__ == '__main__':
     data = asyncio.run(main(
         run_funck=partial(execute_run_cabinet,
                           func_name='campaign_query'),
-        postprocess_func=group_advert_and_id
+        postprocess_func=group_advert_and_id,
+
+
     ))
 
     worksheet = sheets_names()['api_wb_advert']
@@ -196,3 +199,4 @@ if __name__ == '__main__':
 
     end = time.time()
     send_tg_message(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")
+# py -m scripts.pipelines.get_advertising_report

@@ -5,7 +5,7 @@ from scripts.utils.config.factory import get_group_map
 from scripts.utils.gspread_client import get_gspread_client
 import pandas as pd
 
-logger = make_logger(__name__, use_telegram=False)
+logger = make_logger(__name__, use_telegram=True)
 
 
 def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None:
@@ -61,49 +61,60 @@ def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None
             f"🚀 Запущена функция `save_in_gsh()` — группировка и выгрузка данных в лист '{worksheet_name}'")
 
         result = {}
+        try:
 
-        for table, people in MAP.items():
-            res = [data[name] for name in people if name in data]
+            for table, people in MAP.items():
+                res = [data[name] for name in people if name in data]
 
-            if not res:
-                logger.warning(f'⚠️ {table}: нет данных для выгрузки')
-                continue
+                if not res:
+                    logger.warning(f'⚠️ {table}: нет данных для выгрузки')
+                    continue
 
-            result[table] = pd.concat(res, ignore_index=True)
-        logger.info('🚀🚀 Данные сгруппированы!')
-        return result
+                result[table] = pd.concat(res, ignore_index=True)
+            logger.info('🚀🚀 Данные сгруппированы!')
+            return result
+
+        except Exception:
+            logger.exception("Ошибка в группировке данных")
 
     def update_sheet(group: dict[str, pd.DataFrame], worksheet_name: str) -> None:
         gs = get_gspread_client()
 
-        for name, df in group.items():
-            sh = gs.open(name)
-            worksheet = sh.worksheet(worksheet_name)
+        try:
 
-            existing = worksheet.get_all_values()
-            start_row = len(existing) + 1 if existing else 1
+            for name, df in group.items():
+                logger.info(
+                    f"📌 Открываю Google Sheet: '{name}' → Лист: '{worksheet_name}'")
 
-            current_rows = worksheet.row_count
-            current_cols = worksheet.col_count
+                sh = gs.open(name)
+                worksheet = sh.worksheet(worksheet_name)
 
-            req_rows = len(df) + start_row
-            req_cols = df.shape[1]
+                existing = worksheet.get_all_values()
+                start_row = len(existing) + 1 if existing else 1
 
-            if req_cols > current_cols or req_rows > current_rows:
+                current_rows = worksheet.row_count
+                current_cols = worksheet.col_count
 
-                worksheet.resize(
-                    rows=max(req_rows, current_rows),
-                    cols=max(req_cols, current_cols)
-                )
+                req_rows = len(df) + start_row
+                req_cols = df.shape[1]
 
-            logger.info(
-                f"📤 Кабинет {name} Добавляю {len(df)} строк в таблицу '{worksheet_name}' начиная с A{start_row}")
+                if req_cols > current_cols or req_rows > current_rows:
 
-            worksheet.update(
-                range_name=f"A{start_row}",
-                values=df.values.tolist())
+                    worksheet.resize(
+                        rows=max(req_rows, current_rows),
+                        cols=max(req_cols, current_cols)
+                    )
 
-        send_tg_message('📤 Данные выгружены в гугл таблицу!🚀🚀')
+                logger.info(
+                    f"📤 Кабинет {name} Добавляю {len(df)} строк в таблицу '{worksheet_name}' начиная с A{start_row}")
+
+                worksheet.update(
+                    range_name=f"A{start_row}",
+                    values=df.values.tolist())
+        except Exception:
+            logger.exception("Ошибка при обновлении листов")
+
+        logger.info('📤 Данные выгружены в гугл таблицу!🚀🚀')
 
     grouped = goup_by_sheet(data=dict_data, MAP=get_group_map())
     update_sheet(grouped, worksheet_name=worksheet_name)

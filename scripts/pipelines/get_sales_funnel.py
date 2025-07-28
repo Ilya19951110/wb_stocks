@@ -1,6 +1,6 @@
 from scripts.spreadsheet_tools.upload_to_gsheet_advert_sales import save_in_gsh
 from scripts.postprocessors.group_sales import get_current_week_sales_df
-from scripts.utils.config.factory import get_requests_url_wb, sheets_names
+from scripts.utils.config.factory import get_requests_url_wb, sheets_names, get_all_api_request
 from scripts.engine.run_cabinet import execute_run_cabinet
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger
@@ -150,7 +150,8 @@ if __name__ == '__main__':
     data = asyncio.run(main(
         run_funck=partial(execute_run_cabinet,
                           func_name='report_detail'),
-        postprocess_func=get_current_week_sales_df
+        postprocess_func=get_current_week_sales_df,
+
     ))
 
     worksheet = sheets_names()['api_wb_sales']
@@ -158,3 +159,4 @@ if __name__ == '__main__':
 
     end = time.time()
     logger.info(f"⏱ Выполнено за {(end - begin)/60:.2f} минут")
+# py -m scripts.pipelines.get_sales_funnel

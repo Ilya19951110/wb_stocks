@@ -326,3 +326,4 @@ if __name__ == '__main__':
         sheet_directory_wb=wb_sheet,
         gs=gs
     )
+# C:\Users\Ilya\OneDrive\Рабочий стол\Iosifovy\ py -m scripts.integrations.directory_wb_and_oz
