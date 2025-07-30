@@ -1,5 +1,3 @@
-import psutil
-
 import pandas as pd
 import os
 import asyncio
@@ -11,10 +9,9 @@ from scripts.utils.config.factory import get_requests_url_oz
 from dotenv import load_dotenv
 from scripts.engine.main_ozon import main_run_ozon
 from scripts.engine.run_cabinet_oz import execute_run_ozon
-import io
 from scripts.utils.config.factory import get_headers
 from scripts.spreadsheet_tools.upload_oz_matrix_gsheet import upload_oz_stocks_oz_matrix
-from scripts.utils.config.factory import get_all_api_ozon
+from scripts.utils.config.factory import get_client_info
 load_dotenv()
 
 logger = make_logger(__name__, use_telegram=True)
@@ -203,7 +200,7 @@ if __name__ == '__main__':
 
     data_stocks = asyncio.run(main_run_ozon(
         run_func=execute_run_ozon,
-        cabinet_oz=get_all_api_ozon()
+
 
     ))
 

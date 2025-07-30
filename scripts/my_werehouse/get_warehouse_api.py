@@ -90,10 +90,9 @@ def get_mywerehouse_stocks() -> pd.DataFrame:
 
 if __name__ == '__main__':
     #  Запуск
-    # python -m scripts.pipelines.my_werehouse.get_warehouse_api
 
     werehouse = get_mywerehouse_stocks()
 
     upload_my_werehouse_df_in_assortment_matrix_full(
         mywerehouse=werehouse, clear_range=['A:B'])
-# C:\Users\Ilya\OneDrive\Рабочий стол\Iosifovy\scripts\my_werehouse\get_warehouse_api.py
+# py -m scripts.my_werehouse.get_warehouse_api

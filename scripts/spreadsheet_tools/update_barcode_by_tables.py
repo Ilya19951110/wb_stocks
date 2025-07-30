@@ -1,4 +1,4 @@
-from scripts.utils.config.factory import get_group_map, sheets_names
+from scripts.utils.config.factory import get_client_info, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger
@@ -70,11 +70,13 @@ def update_barcode(data: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.DataFram
         "🚀 Запущена функция `update_barcode()` — загрузка штрихкодов по группам в Google Sheets")
 
     sheet_name = sheets_names()['api_wb_barcode']
-    MAP = get_group_map()
+    MAP = get_client_info()['group_map']
+
     grouped_df = defaultdict(pd.DataFrame)
 
     if clear_range is None:
         clear_range = ['A:C']
+
     try:
         logger.info('🔌 Подключаюсь к Google Sheets клиенту...')
         gs = get_gspread_client()

@@ -1,78 +1,82 @@
 import os
 
 
-def get_all_api_ozon() -> dict[str, dict[str, str]]:
+def get_client_info() -> dict:
     """
-    Возвращает данные по кабинетам ozon Havva, Gabriel, UCARE
+    📦 Получает и возвращает полную конфигурацию клиентов (WB + Ozon) и маппинг финмоделей.
 
+    Функция агрегирует ключи API для кабинетов Wildberries и Ozon из переменных окружения,
+    а также возвращает связи кабинетов с финмоделями и группами Google Sheets.
+
+    ────────────────────────────────────────────────
+    🔑 Структура возвращаемого словаря:
+
+    {
+        "api_keys_wb": {<имя кабинета>: <API-ключ WB>, ...},
+        "api_keys_oz": {<название финмодели>: {"Client-Id": ..., "Api-Key": ..., "Content-Type": ...}, ...},
+        "group_map": {<название финмодели>: [<кабинеты WB>], ...},
+        "finmodel_map": {<название финмодели>: (<имя OZON-клиента>, [<кабинеты WB>]), ...}
+    }
+
+    ────────────────────────────────────────────────
+    📌 Возвращает:
+        dict: Словарь с конфигурацией клиентов и связями.
+
+    ────────────────────────────────────────────────
+    🧩 Зависимости:
+        - os.getenv(): Чтение переменных окружения для API-ключей.
+        - Переменные окружения должны содержать:
+            • WB: Azarya, Michael, Rachel, Galilova, Martynenko, Melikhov
+            • Ozon: HAVVA_Client_id_oz, HAVVA_api_key_oz,
+                     Gabriel_Client_id_oz, Gabriel_api_key_oz,
+                     UCARE_Client_id_oz, UCARE_api_key_oz
+
+    ────────────────────────────────────────────────
+    🧑‍💻 Автор: Илья
+    📅 Версия: Июль 2025
     """
     return {
-        'Havva': {
+        "api_keys_wb": {
+            'Азарья': os.getenv('Azarya', '').strip(),
+            'Михаил': os.getenv('Michael', '').strip(),
+            'Рахель': os.getenv('Rachel', '').strip(),
+            'Галилова': os.getenv('Galilova', '').strip(),
+            'Мартыненко': os.getenv('Martynenko', '').strip(),
+            'Мелихов': os.getenv('Melikhov', '').strip()
+        },
 
-            'Client-Id': os.getenv('HAVVA_Client_id_oz'),
-            'Api-Key': os.getenv('HAVVA_api_key_oz'),
-            'Content-Type': 'application/json'
+        "api_keys_oz": {
+            'Havva': {
+
+                'Client-Id': os.getenv('HAVVA_Client_id_oz'),
+                'Api-Key': os.getenv('HAVVA_api_key_oz'),
+                'Content-Type': 'application/json'
+            },
+            'Gabriel': {
+                'Client-Id': os.getenv('Gabriel_Client_id_oz'),
+                'Api-Key': os.getenv('Gabriel_api_key_oz'),
+                'Content-Type': 'application/json',
+            },
+            'UCARE': {
+                'Client-Id': os.getenv('UCARE_Client_id_oz'),
+                'Api-Key': os.getenv('UCARE_api_key_oz'),
+                'Content-Type': 'application/json',
+            }
         },
-        'Gabriel': {
-            'Client-Id': os.getenv('Gabriel_Client_id_oz'),
-            'Api-Key': os.getenv('Gabriel_api_key_oz'),
-            'Content-Type': 'application/json',
+
+        "group_map": {
+            'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
+            'Фин модель Галилова': ['Галилова'],
+            'Фин модель Мартыненко': ['Мартыненко', 'Торгмаксимум'],
+            'Фин модель Мелихов': ['Мелихов']
         },
-        'UCARE': {
-            'Client-Id': os.getenv('UCARE_Client_id_oz'),
-            'Api-Key': os.getenv('UCARE_api_key_oz'),
-            'Content-Type': 'application/json',
+        "finmodel_map": {
+            'Фин модель Иосифовы Р А М': ('Gabriel', ['Рахель', 'Михаил', 'Азарья']),
+            'Фин модель Галилова': ('Havva', ['Галилова']),
+            'Фин модель Мартыненко': ('Ucare', ['Мартыненко']),
+            'Фин модель Мелихов': ('NO_OZON', ['Мелихов'])
         }
     }
-
-
-def get_all_api_request() -> dict[str, str]:
-    """
-   Возвращает маппинг: кабинет → API-ключ из .env
-   """
-    return {
-        'Азарья': os.getenv('Azarya').strip(),
-        'Михаил': os.getenv('Michael').strip(),
-        'Рахель': os.getenv('Rachel').strip(),
-        'Галилова': os.getenv('Galilova').strip(),
-        'Мартыненко': os.getenv('Martynenko').strip(),
-        'Мелихов': os.getenv('Melikhov').strip()
-    }
-
-
-def get_group_map() -> dict[str, list[str]]:
-    """
-Возвращает маппинг: имя таблицы Google Sheets → список кабинетов, например:
-'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
-"""
-    return {
-        'Фин модель Иосифовы Р А М': ['Азарья', 'Рахель', 'Михаил'],
-        'Фин модель Галилова': ['Галилова'],
-        'Фин модель Мартыненко': ['Мартыненко', 'Торгмаксимум'],
-        'Фин модель Мелихов': ['Мелихов']
-    }
-
-
-def tables_names() -> dict[str, str]:
-    """
-    Возвращае словарь key, val - имя таблицы
-    'profit_supplier': 'Прибыль поставщики',
-    'wb_matrix_complete': 'Ассортиментная матрица. Полная',
-    'oz_matrix_complete': 'Ассортиментная матрица OZON'
-    """
-    return {
-        'profit_supplier': 'Прибыль поставщики',
-        'wb_matrix_complete': 'Ассортиментная матрица. Полная',
-        'oz_matrix_complete': 'Ассортиментная матрица OZON'
-    }
-
-
-def get_assortment_matrix_complete() -> str:
-    return 'Ассортиментная матрица. Полная'
-
-
-def get_assortment_matrix_complete_OZON() -> str:
-    return 'Ассортиментная матрица OZON'
 
 
 def get_requests_url_oz() -> dict[str, str]:
@@ -120,20 +124,6 @@ def get_requests_url_wb() -> dict[str, str]:
     }
 
 
-def get_finmodel_to_cabinet_map() -> dict[str, tuple[str, list[str]]]:
-    """
-
-    Возвращает соответствие финмоделей их кабинетам и владельцам (для объединения данных из WB и OZ)
-    """
-
-    return {
-        'Фин модель Иосифовы Р А М': ('Gabriel', ['Рахель', 'Михаил', 'Азарья']),
-        'Фин модель Галилова': ('Havva', ['Галилова']),
-        'Фин модель Мартыненко': ('Ucare', ['Мартыненко']),
-        'Фин модель Мелихов': ('NO_OZON', ['Мелихов'])
-    }
-
-
 def sheets_names() -> dict[str, str]:
     """
      Возвращает словарь с названиями листов Google Sheets для входных и выходных данных
@@ -155,4 +145,18 @@ def sheets_names() -> dict[str, str]:
         'tariffs_box_api': 'API(Тарифы коробов)',
 
 
+    }
+
+
+def tables_names() -> dict[str, str]:
+    """
+    Возвращае словарь key, val - имя таблицы
+    'profit_supplier': 'Прибыль поставщики',
+    'wb_matrix_complete': 'Ассортиментная матрица. Полная',
+    'oz_matrix_complete': 'Ассортиментная матрица OZON'
+    """
+    return {
+        'profit_supplier': 'Прибыль поставщики',
+        'wb_matrix_complete': 'Ассортиментная матрица. Полная',
+        'oz_matrix_complete': 'Ассортиментная матрица OZON'
     }

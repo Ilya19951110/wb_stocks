@@ -1,6 +1,6 @@
 from scripts.utils.setup_logger import make_logger
 from scripts.utils.telegram_logger import send_tg_message
-from scripts.utils.config.factory import get_all_api_request
+from scripts.utils.config.factory import get_client_info
 from dotenv import load_dotenv
 from collections import defaultdict
 import aiohttp
@@ -61,7 +61,7 @@ async def main(run_funck, postprocess_func=None, cabinet=None) -> dict[str, tupl
     result, failed = {}, {}
 
     if cabinet is None:
-        all_api_request = get_all_api_request()
+        all_api_request = get_client_info()['api_keys_wb']
 
     else:
         all_api_request = cabinet

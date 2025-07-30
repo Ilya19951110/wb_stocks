@@ -64,6 +64,7 @@ def price_transfer_from_am_in_am_oz() -> None:
     table_matrix_oz = tables_names()['oz_matrix_complete']
 
     sheet_name = sheets_names()['directory_wb']
+
     logger.info(f"🚀 Старт функции передачи данных: `{sheet_name}`")
     try:
         logger.info(

@@ -1,9 +1,9 @@
 from scripts.utils.config.factory import sheets_names, tables_names
+from gspread.exceptions import APIError
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger
 from gspread_dataframe import set_with_dataframe
-from gspread.exceptions import APIError
 import pandas as pd
 import time
 
@@ -11,7 +11,7 @@ import time
 logger = make_logger(__name__, use_telegram=False)
 
 
-def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'], MAX_RETRIES: int = 3, DELAY: int = 10) -> None:
+def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'], MAX_RETRIES: int = 3, DELAY: int = 35) -> None:
     """
     Загружает данные остатков Ozon в указанные листы Google Таблицы.
 
@@ -28,12 +28,12 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             - Загружается DataFrame в лист с заголовками, без индекса.
 
     Args:
-        data (dict[str, pd.DataFrame]): 
+        data (dict[str, pd.DataFrame]):
             Словарь с данными для загрузки. Ключ — имя листа (например, "Москва"),
             значение — pandas DataFrame с данными остатков по складу.
 
-        clear_range (list[str], optional): 
-            Диапазоны ячеек для очистки перед загрузкой. 
+        clear_range (list[str], optional):
+            Диапазоны ячеек для очистки перед загрузкой.
             По умолчанию очищаются столбцы A:M.
 
     Returns:
@@ -49,7 +49,7 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             '📡 Инициализирую GSpread клиента и получаю название таблицы...')
 
         gs = get_gspread_client()
-        table = tables_names()['oz_matrix_complete']
+        table = tables_names()['wb_matrix_complete']
 
         logger.info(f"✅ Таблица найдена: '{table}'")
 
@@ -98,43 +98,41 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             logger.exception(msg)
             return
 
-        try:
+        logger.info(f"📤 {name} → Загружаю DataFrame на лист")
 
-            logger.info(f"📤 {name} → Загружаю DataFrame на лист")
+        for attempt in range(MAX_RETRIES):
+            try:
+                set_with_dataframe(
+                    wsheet,
+                    df,
+                    col=1,
+                    row=1,
+                    include_column_header=True,
+                    include_index=False
+                )
 
-            for attempt in range(MAX_RETRIES):
-                try:
+                logger.info(
+                    f"✅ {name} → Успешно после {attempt+1} попытки\n✅ {name} → Успешно загружено: {df.shape[0]} строк, {df.shape[1]} столбцов")
+                break
 
-                    set_with_dataframe(
-                        wsheet,
-                        df,
-                        col=1,
-                        row=1,
-                        include_column_header=True,
-                        include_index=False
-                    )
+            except APIError as e:
+                status = getattr(e.response, 'status_code', None)
+                logger.warning(
+                    f"⚠️ {name} → APIError {status}, повтор {attempt+1}/{MAX_RETRIES}")
 
-                    logger.info(
-                        f"✅ {name} → Успешно после {attempt+1} попытки")
-                    break
+                time.sleep(DELAY)
 
-                except Exception as e:
-                    if '503' in str(e):
-                        logger.warning(
-                            f"⚠️ {name} → 503 от Google, повтор {attempt+1}/{MAX_RETRIES}")
+                if attempt == MAX_RETRIES - 1:
+                    raise
 
-                        time.sleep(DELAY)
-                    else:
-                        raise
+                time.sleep(DELAY)
 
-            logger.info(
-                f"✅ {name} → Успешно загружено: {df.shape[0]} строк, {df.shape[1]} столбцов")
+            except Exception as e:
+                if '503' in str(e) or '500' in str(e):
+                    logger.warning(
+                        f"⚠️ {name} → Ошибка {e}, повтор {attempt+1}/{MAX_RETRIES}")
 
-            time.sleep(DELAY)
-        except Exception as e:
-            msg = f"❌ {name} → Ошибка при загрузке данных: {e}"
-            send_tg_message(msg)
-            logger.exception(msg)
+                    time.sleep(DELAY)
 
     send_tg_message(
         "✅ Загрузка всех данных в Google Sheets завершена успешно!")

@@ -3,11 +3,11 @@ import aiohttp
 from scripts.utils.setup_logger import make_logger
 import pandas as pd
 from scripts.utils.telegram_logger import send_tg_message
-
+from scripts.utils.config.factory import get_client_info
 logger = make_logger(__name__, use_telegram=False)
 
 
-async def main_run_ozon(run_func, cabinet_oz: dict[str, dict[str, str]]) -> dict[str, pd.DataFrame]:
+async def main_run_ozon(run_func, cabinet_oz: dict[str, dict[str, str]] = None) -> dict[str, pd.DataFrame]:
     """
     🔄 Асинхронный универсальный запуск обработки кабинетов OZON.
 
@@ -58,6 +58,9 @@ async def main_run_ozon(run_func, cabinet_oz: dict[str, dict[str, str]]) -> dict
 
     final_report = {}
     result = {}
+
+    if cabinet_oz is None:
+        cabinet_oz = get_client_info()['api_keys_oz']
 
     async with aiohttp.ClientSession() as sessions:
         tasks = [

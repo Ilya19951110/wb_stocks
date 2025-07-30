@@ -82,7 +82,8 @@
 
 🧑‍💻 Автор: Илья
 """
-from scripts.utils.config.factory import get_assortment_matrix_complete, get_assortment_matrix_complete_OZON, get_finmodel_to_cabinet_map, sheets_names
+
+from scripts.utils.config.factory import get_client_info, tables_names, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger
@@ -161,10 +162,11 @@ def request_oz_and_wb_product_range_matrix() -> tuple[dict[str, pd.DataFrame], s
 """
     gs = get_gspread_client()
 
-    table_entrepreneur = get_finmodel_to_cabinet_map()
+    table_entrepreneur = get_client_info()['finmodel_map']
 
-    wb_matrix = get_assortment_matrix_complete()
-    oz_matrix = get_assortment_matrix_complete_OZON()
+    wb_matrix = tables_names()['wb_matrix_complete']
+    oz_matrix = tables_names()['oz_matrix_complete']
+
     # upload_worksheet_directory_oz
     spreadsheet_wb = gs.open(wb_matrix)
     spreadsheet_oz = gs.open(oz_matrix)

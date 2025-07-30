@@ -1,4 +1,4 @@
-from scripts.utils.config.factory import get_assortment_matrix_complete, get_assortment_matrix_complete_OZON, sheets_names
+from scripts.utils.config.factory import tables_names, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.config.factory import sheets_names
@@ -68,7 +68,7 @@ def transfer_wb_barcodes_to_oz_sheet(clear_range=['A:B']) -> None:
         gs = get_gspread_client()
 
         wsheet = sheets_names()['barcodes_wb_oz']
-        table_matrix_oz = get_assortment_matrix_complete_OZON()
+        table_matrix_oz = tables_names()['oz_matrix_complete']
 
         logger.info(f"🔑 Подключено к таблице OZ: {table_matrix_oz}")
     except Exception:
@@ -83,7 +83,7 @@ def transfer_wb_barcodes_to_oz_sheet(clear_range=['A:B']) -> None:
         try:
             logger.info(f"📥 Получаю данные из таблицы WB: {sheet_name}")
 
-            table_matrix_wb = get_assortment_matrix_complete()
+            table_matrix_wb = tables_names()['wb_matrix_complete']
             spreadsheet = gs.open(table_matrix_wb)
 
             worksheet = spreadsheet.worksheet(sheet_name)

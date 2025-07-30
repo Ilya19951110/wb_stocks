@@ -1,6 +1,6 @@
 import pandas as pd
 from scripts.utils.setup_logger import make_logger
-from scripts.utils.config.factory import get_assortment_matrix_complete, sheets_names
+from scripts.utils.config.factory import tables_names, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from gspread_dataframe import set_with_dataframe
 from scripts.utils.telegram_logger import send_tg_message
@@ -78,7 +78,7 @@ def upload_my_werehouse_df_in_assortment_matrix_full(mywerehouse: pd.DataFrame, 
         gs = get_gspread_client()
 
         logger.info('📄 Получаю название таблицы для загрузки...')
-        table_name = get_assortment_matrix_complete()
+        table_name = tables_names()['wb_matrix_complete']
 
         logger.info(f'📂 Открываю таблицу: {table_name}')
         spreadsheet = gs.open(table_name)

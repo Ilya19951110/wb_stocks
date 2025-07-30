@@ -1,6 +1,6 @@
 from scripts.utils.setup_logger import make_logger
 from scripts.utils.gspread_client import get_gspread_client
-from scripts.utils.config.factory import get_assortment_matrix_complete
+from scripts.utils.config.factory import tables_names
 from scripts.utils.telegram_logger import send_tg_message
 
 import pandas as pd
@@ -70,7 +70,7 @@ def push_concat_all_cabinet_stocks_to_sheets(
     📅 Версия: Июль 2025
     """
     try:
-        sh = get_assortment_matrix_complete()
+        sh = tables_names()['wb_matrix_complete']
         logger.info('🔌 Подключаюсь к Google Sheets клиенту...')
 
         gs = get_gspread_client()
