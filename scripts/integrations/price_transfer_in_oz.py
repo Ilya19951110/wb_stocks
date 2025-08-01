@@ -123,3 +123,4 @@ def price_transfer_from_am_in_am_oz() -> None:
 if __name__ == '__main__':
     send_tg_message(f"🚀 Запуск функции `price_transfer_from_am_in_am_oz`")
     price_transfer_from_am_in_am_oz()
+# py -m scripts.integrations.price_transfer_in_oz

@@ -1,6 +1,6 @@
 from scripts.spreadsheet_tools.upload_to_gsheet_advert_sales import save_in_gsh
 from scripts.postprocessors.group_sales import get_current_week_sales_df
-from scripts.utils.config.factory import get_requests_url_wb, sheets_names, get_all_api_request
+from scripts.utils.config.factory import get_requests_url_wb, sheets_names
 from scripts.engine.run_cabinet import execute_run_cabinet
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger

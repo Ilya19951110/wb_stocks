@@ -1,7 +1,7 @@
 import pandas as pd
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.setup_logger import make_logger
-from scripts.utils.config.factory import get_group_map, sheets_names, tables_names
+from scripts.utils.config.factory import sheets_names, tables_names
 from gspread_dataframe import set_with_dataframe
 from scripts.utils.telegram_logger import send_tg_message
 

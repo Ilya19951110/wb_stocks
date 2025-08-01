@@ -218,3 +218,4 @@ if __name__ == '__main__':
     end = time.time()
 
     logger.info(f"😎 Время выполнения: {(end-begin)/60:,.2f}")
+# py -m scripts.pipelines.get_supplier_stocks

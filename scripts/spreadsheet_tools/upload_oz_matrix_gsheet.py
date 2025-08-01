@@ -49,7 +49,7 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             '📡 Инициализирую GSpread клиента и получаю название таблицы...')
 
         gs = get_gspread_client()
-        table = tables_names()['wb_matrix_complete']
+        table = tables_names()['oz_matrix_complete']
 
         logger.info(f"✅ Таблица найдена: '{table}'")
 
@@ -79,9 +79,11 @@ def upload_oz_stocks_oz_matrix(data: dict[str, pd.DataFrame], clear_range=['A:M'
             return
 
         try:
-            logger.info(f"🧼 {name} → Лист найден, очищаю и настраиваю размеры")
+
             if sheet_name in work_sheets:
 
+                logger.info(
+                    f"🧼 {name} → Лист найден, очищаю и настраиваю размеры")
                 wsheet = spreadsheet.worksheet(sheet_name)
 
                 wsheet.batch_clear(clear_range)

@@ -59,7 +59,7 @@ async def get_cards(session: aiohttp.ClientSession, name: str, api: str) -> tupl
     🗓 Версия: Июль 2025
     """
     DELAY = 3
-    url_cards = get_requests_url_wb()
+    url = get_requests_url_wb()['card_list']
     all_cards, rows, cursor = [], [], None
 
     while True:
@@ -82,7 +82,7 @@ async def get_cards(session: aiohttp.ClientSession, name: str, api: str) -> tupl
             payload["settings"]["cursor"].update(cursor)
 
         try:
-            async with session.post(url_cards['card_list'], headers=headers, json=payload) as response:
+            async with session.post(url, headers=headers, json=payload) as response:
 
                 if response.status != 200:
                     error_text = await response.text()
