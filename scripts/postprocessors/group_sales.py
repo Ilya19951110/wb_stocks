@@ -15,7 +15,7 @@ def get_current_week_sales_df(sales: pd.DataFrame, ID: pd.DataFrame, name: str) 
     Параметры:
     ----------
     sales : pd.DataFrame
-        DataFrame с вложенными JSON-данными по продажам за текущий и предыдущий периоды (как правило, 
+        DataFrame с вложенными JSON-данными по продажам за текущий и предыдущий периоды (как правило,
         полученные через API Wildberries).
 
     ID : pd.DataFrame
@@ -119,19 +119,53 @@ def get_current_week_sales_df(sales: pd.DataFrame, ID: pd.DataFrame, name: str) 
         'Количество отмен': 'Отменили, шт',
         'Сумма заказов (руб)': 'Заказали на сумму, руб',
 
-    }).filter([
-        'ID', 'Неделя', 'Переходы в карточку',	'Положили в корзину',	'Заказали, шт',	'Выкупили, шт', 'Отменили, шт',	'Заказали на сумму, руб',
-    ]).groupby([
-        'ID', 'Неделя',
-    ]).agg({
-        'Переходы в карточку': 'sum',
-        'Положили в корзину': 'sum',
-        'Заказали, шт': 'sum',
-        'Выкупили, шт': 'sum',
-        'Отменили, шт': 'sum',
-        'Заказали на сумму, руб': 'sum',
-    }).reset_index()
 
-    logger.info(final_df.head(5))
+    })
 
-    return final_df
+    if name not in ('Мелихов', 'Мартыненко'):
+        final_df = final_df.filter([
+            'ID', 'Неделя', 'Переходы в карточку',	'Положили в корзину',	'Заказали, шт',	'Выкупили, шт', 'Отменили, шт',	'Заказали на сумму, руб',
+        ])
+
+        final_group_df = final_df.groupby([
+            'ID', 'Неделя',
+        ]).agg({
+            'Переходы в карточку': 'sum',
+            'Положили в корзину': 'sum',
+            'Заказали, шт': 'sum',
+            'Выкупили, шт': 'sum',
+            'Отменили, шт': 'sum',
+            'Заказали на сумму, руб': 'sum',
+        }).reset_index()
+
+        logger.info(final_df.head(5))
+
+    else:
+
+        id_mapping = final_df[['Артикул WB', 'ID']].drop_duplicates()
+
+        final_df = final_df.filter([
+            'ID', 'Неделя', 'Переходы в карточку',	'Положили в корзину',	'Заказали, шт',	'Выкупили, шт', 'Отменили, шт',	'Заказали на сумму, руб', 'Артикул WB'
+        ])
+
+        final_group_df = final_df.groupby([
+            'Неделя', 'Артикул WB'
+        ]).agg({
+            'Переходы в карточку': 'sum',
+            'Положили в корзину': 'sum',
+            'Заказали, шт': 'sum',
+            'Выкупили, шт': 'sum',
+            'Отменили, шт': 'sum',
+            'Заказали на сумму, руб': 'sum',
+        }).reset_index()
+
+        final_group_df = final_group_df.merge(
+            id_mapping, on='Артикул WB', how='left')
+
+        final_group_df = final_group_df.drop_duplicates()
+
+        final_group_df = final_group_df.filter([
+            'ID', 'Неделя', 'Переходы в карточку',	'Положили в корзину',	'Заказали, шт',	'Выкупили, шт', 'Отменили, шт',	'Заказали на сумму, руб', 'Артикул WB'
+        ])
+        logger.info(final_group_df.columns.tolist())
+    return final_group_df

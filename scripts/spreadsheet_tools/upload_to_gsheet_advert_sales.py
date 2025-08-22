@@ -116,5 +116,5 @@ def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None
 
         logger.info('📤 Данные выгружены в гугл таблицу!🚀🚀')
 
-    grouped = goup_by_sheet(data=dict_data, MAP=get_client_info['group_map'])
+    grouped = goup_by_sheet(data=dict_data, MAP=get_client_info()['group_map'])
     update_sheet(grouped, worksheet_name=worksheet_name)

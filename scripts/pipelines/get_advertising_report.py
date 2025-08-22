@@ -12,7 +12,9 @@ import pandas as pd
 import aiohttp
 import asyncio
 import time
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 logger = make_logger(__name__, use_telegram=False)
 
@@ -79,18 +81,18 @@ async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) ->
     🧠 Автор: Илья  
     🗓 Версия: Июль 2025
     """
-    url_count = get_requests_url_wb()
+    url_count = get_requests_url_wb()['promotion_count']
 
-    url_fullstats = get_requests_url_wb()
+    url_fullstats = get_requests_url_wb()['advert_fullstats']
 
-    camp_data, advert_sp = [], []
+    camp_data = []
 
     date_from = (datetime.now()-timedelta(days=7)).strftime('%Y-%m-%d')
     date_to = (datetime.now()-timedelta(days=1)).strftime('%Y-%m-%d')
 
     headers = {'Authorization': api}
 
-    async with session.get(url_count['promotion_count'], headers=headers) as adverts:
+    async with session.get(url_count, headers=headers) as adverts:
 
         if adverts.status == 204:
             msg = f"⚠️ ⚠️ Из 'campaign_query': Нет данных (204) для {name}"
@@ -108,35 +110,23 @@ async def campaign_query(api: str, name: str, session: aiohttp.ClientSession) ->
         if adverts.status == 200:
             camp = await adverts.json()
 
-        for block in camp['adverts']:
-            advert_type = block['type']
-            advert_count = block['count']
-            advert_status = block['status']
-
-            for advert in block['advert_list']:
-                advert['type'] = advert_type
-                advert['status'] = advert_status
-                advert['count'] = advert_count
-                advert_sp.append(advert)
-
-        advert_df = pd.DataFrame(advert_sp)
-
-        if not camp.get('adverts'):
-            msg = f"⚠️ Нет активных кампаний для {name}"
-            logger.warning(msg)
-            send_tg_message(msg)
-            return pd.DataFrame()
+        advert_id = [
+            a['advertId']
+            for adv in camp['adverts']
+            if 'advert_list' in adv
+            for a in adv['advert_list']
+        ]
 
         logger.info(
-            f"✅✅ Получено {len(advert_df)} кампаний для {name}".upper())
+            f"✅✅ Получено {len(advert_id)} кампаний для {name}".upper())
 
     params = [{'id': c, 'interval': {
-        'begin': date_from, 'end': date_to}}for c in advert_df['advertId']]
+        'begin': date_from, 'end': date_to}} for c in advert_id]
 
     logger.info(
         f"📥 Загружаю статистику для {len(params)} кампаний — {name}".upper())
 
-    async with session.post(url_fullstats['advert_fullstats'], headers=headers, json=params) as stats:
+    async with session.post(url_fullstats, headers=headers, json=params) as stats:
         if stats.status != 200:
             error_text = await stats.text()
             msg = f"⚠️⚠️ Ошибка запроса статистики: {error_text}"
@@ -189,6 +179,7 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='campaign_query'),
         postprocess_func=group_advert_and_id,
+
 
 
     ))

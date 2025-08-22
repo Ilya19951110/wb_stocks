@@ -12,7 +12,7 @@ from functools import partial
 import aiohttp
 import asyncio
 import time
-
+import os
 
 load_dotenv()
 
@@ -151,6 +151,7 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='report_detail'),
         postprocess_func=get_current_week_sales_df,
+
 
     ))
 
