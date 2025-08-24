@@ -2,17 +2,53 @@ from scripts.utils.setup_logger import make_logger
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.config.factory import tables_names
 from scripts.utils.telegram_logger import send_tg_message
-
+from typing import Optional
 import pandas as pd
+import time
 
 logger = make_logger(__name__, use_telegram=False)
+
+
+def filtered_blocked_nmid(df: pd.DataFrame, block_df: pd.DataFrame) -> pd.DataFrame:
+
+    df = df.copy()
+    block_df = block_df.copy()
+
+    # Приведение колонок к строкам и очистка
+    df['Артикул WB'] = df['Артикул WB'].astype(str).str.strip()
+    block_df['Артикул WB'] = block_df['Артикул WB'].astype(str).str.strip()
+
+    # Приведение остатков к числу
+    df['Итого остатки'] = pd.to_numeric(
+        df['Итого остатки'], errors='coerce').fillna(0)
+
+    # Формируем маски
+    block_nmid_set = set(block_df['Артикул WB'])
+    in_block = df['Артикул WB'].isin(block_nmid_set)
+    no_stocks = df['Итого остатки'] <= 0
+    to_remove = in_block & no_stocks
+
+    # Логирование
+    logger.info(
+        f"🧹 Фильтрация блокировки: удалено строк — {to_remove.sum()} из {len(df)}")
+
+    # Отладка — показать примеры
+    if to_remove.sum() > 0:
+        logger.debug(
+            f"🧾 Пример удалённых:\n{df[to_remove][['Артикул WB', 'Итого остатки']].head(5)}")
+
+    # Возвращаем очищенный DataFrame
+    df = df[~to_remove].copy()
+    df['Артикул WB'] = df['Артикул WB'].astype(int)
+    return df
 
 
 def push_concat_all_cabinet_stocks_to_sheets(
     data: list[pd.DataFrame],
     sheet_name: str,
+    block_nmid: Optional[pd.DataFrame] = None,
     clear_range=None,
-    block_nmid=None
+
 ) -> None:
     """
     📤 Выгрузка объединённых остатков по кабинетам в Google Sheets
@@ -83,17 +119,32 @@ def push_concat_all_cabinet_stocks_to_sheets(
         return
 
     try:
-        spreadsheet = gs.open(sh)
+
+        for attempt in range(3):
+            try:
+                spreadsheet = gs.open(sh)
+                break
+            except Exception as e:
+                logger.warning(f"📛 Попытка {attempt + 1} — ошибка: {e}")
+
+                if attempt < 2:
+                    time.sleep(3)
+                else:
+                    raise
+
         worksheet = spreadsheet.worksheet(sheet_name)
 
-        if block_nmid:
+        if block_nmid is not None and not block_nmid.empty:
+
             logger.info(f'block_nmid длина {len(block_nmid)}')
-            df_combined = pd.concat(data, ignore_index=True)
+            _df_combined = pd.concat(data, ignore_index=True)
 
-            df_combined = df_combined[~df_combined['Артикул WB'].isin(
-                block_nmid)]
+            logger.info(f"📊 Объединено строк: {len(_df_combined)}")
 
-            logger.info(f"📊 Объединено строк: {len(df_combined)}")
+            df_combined = filtered_blocked_nmid(
+                df=_df_combined, block_df=block_nmid)
+
+            logger.warning(f"После фильтрации дф: {df_combined.shape}")
 
         else:
             df_combined = pd.concat(data, ignore_index=True)

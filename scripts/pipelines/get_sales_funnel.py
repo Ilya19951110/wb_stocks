@@ -151,6 +151,7 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='report_detail'),
         postprocess_func=get_current_week_sales_df,
+        exclude_names=['Мишнева', 'Шелудько']
 
 
     ))

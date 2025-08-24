@@ -42,7 +42,9 @@ def get_client_info() -> dict:
             'Рахель': os.getenv('Rachel', '').strip(),
             'Галилова': os.getenv('Galilova', '').strip(),
             'Мартыненко': os.getenv('Martynenko', '').strip(),
-            'Мелихов': os.getenv('Melikhov', '').strip()
+            'Мелихов': os.getenv('Melikhov', '').strip(),
+            'Мишнева': os.getenv('Mishneva', '').strip(),
+            'Шелудько': os.getenv('Sheludko', '').strip(),
         },
 
         "api_keys_oz": {
@@ -76,6 +78,7 @@ def get_client_info() -> dict:
             'Фин модель Мартыненко': ('Ucare', ['Мартыненко']),
             'Фин модель Мелихов': ('NO_OZON', ['Мелихов'])
         }
+
     }
 
 
@@ -145,6 +148,13 @@ def sheets_names() -> dict[str, str]:
         'tariffs_box_api': 'API(Тарифы коробов)',
 
 
+    }
+
+
+def table_name_mirshik():
+    return {
+        'Шелудько': 'План продаж ИП Шелудько',
+        'Мишнева': 'План продаж ИП Мишнева И'
     }
 
 

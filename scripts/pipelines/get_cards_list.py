@@ -72,7 +72,7 @@ async def get_cards(session: aiohttp.ClientSession, name: str, api: str) -> tupl
                 "filter": {"withPhoto": -1},
                 "cursor": {"limit": 100},
                 "period": {
-                    'begin': '2024-01-01',
+                    'begin': '2024-01-01' if name not in ('Шелудько', 'Мишнева') else '2025-01-01',
                     'end': datetime.now().strftime("%Y-%m-%d")
                 },
             },

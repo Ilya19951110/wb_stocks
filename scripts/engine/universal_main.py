@@ -12,7 +12,7 @@ load_dotenv()
 logger = make_logger(__name__, use_telegram=False)
 
 
-async def main(run_funck, postprocess_func=None, cabinet=None) -> dict[str, tuple[pd.DataFrame, pd.DataFrame]]:
+async def main(run_funck, exclude_names: list[str] = None, postprocess_func=None, cabinet=None) -> dict[str, tuple[pd.DataFrame, pd.DataFrame]]:
     """
     🔁 Универсальный асинхронный движок для запуска обработки по кабинетам WB/Ozon.
 
@@ -60,11 +60,20 @@ async def main(run_funck, postprocess_func=None, cabinet=None) -> dict[str, tupl
     status_report = defaultdict(str)
     result, failed = {}, {}
 
+    exclude_names = exclude_names or []
+
+    if exclude_names:
+        logger.info(f"⛔ Исключены из обработки: {', '.join(exclude_names)}")
+
     if cabinet is None:
         all_api_request = get_client_info()['api_keys_wb']
 
     else:
         all_api_request = cabinet
+
+    all_api_request = {
+        name: api for name, api in all_api_request.items() if name not in exclude_names
+    }
 
     async with aiohttp.ClientSession() as session:
         tasks = [

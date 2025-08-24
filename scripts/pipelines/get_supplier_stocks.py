@@ -4,6 +4,7 @@ from scripts.postprocessors.group_stocks import merge_and_transform_stocks_with_
 from scripts.utils.config.factory import sheets_names, get_requests_url_wb
 from scripts.utils.request_block_nmId import get_block_nmId
 from scripts.spreadsheet_tools.update_barcode_by_tables import update_barcode
+from scripts.spreadsheet_tools.push_mishneva_sheludko import push_stocks_mishneva_sheludko
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.engine.run_cabinet import execute_run_cabinet
 from scripts.utils.setup_logger import make_logger
@@ -186,20 +187,32 @@ if __name__ == '__main__':
     result_data = asyncio.run(main(
         run_funck=partial(execute_run_cabinet,
                           func_name='get_stocks'),
-        postprocess_func=merge_and_transform_stocks_with_idkt
+        postprocess_func=merge_and_transform_stocks_with_idkt,
+
     ))
 
-    stocks_list = [stocks[0] for stocks in result_data.values()]
+    fileterd_name = ['Мишнева', 'Шелудько']
+    mishneva_sheludko_stocks = {
+        name: stocks for name, (stocks, _) in result_data.items() if name in fileterd_name}
 
-    article_seller = [barcode[1] for barcode in result_data.values()]
+    stocks_list = [stocks[0] for name,
+                   stocks in result_data.items() if name not in fileterd_name]
+
+    article_seller = [barcode[1] for name,
+                      barcode in result_data.items() if name not in fileterd_name]
 
     logger.info(
         f"📦 Подготовлено {len(stocks_list)} датафреймов для выгрузки остатков")
 
+    push_stocks_mishneva_sheludko(
+        data=mishneva_sheludko_stocks
+    )
+
     push_concat_all_cabinet_stocks_to_sheets(
         data=stocks_list,
         sheet_name=sheets_names()['group_stocks_and_idkt'],
-        block_nmid=get_block_nmId()
+        block_nmid=get_block_nmId(),
+
     )
 
     logger.info(
