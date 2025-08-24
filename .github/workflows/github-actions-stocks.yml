@@ -12,6 +12,10 @@ env:
   Galilova: ${{ secrets.GALILOVA }}
   Martynenko: ${{ secrets.MARTYNENKO }}
   Melikhov: ${{ secrets.Melikhov }}
+
+  Mishneva: ${{ secrets.Mishneva }}
+  Sheludko: ${{ secrets.Sheludko }}
+  
   TG_TOKEN: ${{ secrets.TG_TOKEN }}
   MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
