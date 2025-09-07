@@ -44,3 +44,12 @@ jobs:
 
       - name: Run Transfer Script
         run: python -m scripts.integrations.price_transfer_in_oz
+      
+      - name: Wait 2 minutes before concat
+        run:  sleep 120
+
+      - name: Run concat Sheludko and Mishneva in manager table
+        run: python -m scripts.integrations.concat_sales_plan_for_stock
+
+      - name: Run revers integration from manager table in Sheludko sales and Mishneva sales
+        run: py -m scripts.integrations.reverse_integration_aurum

@@ -16,6 +16,7 @@ import pandas as pd
 import asyncio
 import aiohttp
 import time
+import os
 
 
 logger = make_logger(__name__, use_telegram=False)
@@ -188,7 +189,7 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='get_stocks'),
         postprocess_func=merge_and_transform_stocks_with_idkt,
-
+        cabinet={'Мишнева': os.getenv('Mishneva')}
     ))
 
     fileterd_name = ['Мишнева', 'Шелудько']
@@ -202,7 +203,7 @@ if __name__ == '__main__':
                       barcode in result_data.items() if name not in fileterd_name]
 
     logger.info(
-        f"📦 Подготовлено {len(stocks_list)} датафреймов для выгрузки остатков")
+        f"📦 Подготовлено {len(stocks_list)} датафреймов для выгрузки остатков кабинетов: [{', '.join(f for f in fileterd_name)}]")
 
     push_stocks_mishneva_sheludko(
         data=mishneva_sheludko_stocks

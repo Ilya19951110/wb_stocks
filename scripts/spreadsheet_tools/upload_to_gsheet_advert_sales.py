@@ -64,21 +64,38 @@ def save_in_gsh(dict_data: dict[str, pd.DataFrame], worksheet_name: str) -> None
         try:
 
             for table, people in MAP.items():
-                res = [data[name] for name in people if name in data]
+                res = [df for name in people if (
+                    df := data.get(name)) is not None]
 
                 if not res:
                     logger.warning(f'⚠️ {table}: нет данных для выгрузки')
                     continue
 
-                result[table] = pd.concat(res, ignore_index=True)
+                try:
+                    result[table] = pd.concat(res, ignore_index=True)
+
+                    logger.info(f"{result}")
+                except Exception as e:
+                    logger.exception(f"❌ Ошибка в concat для {table}: {e}")
+
+            if not result:
+                logger.warning("⚠️ Все таблицы пустые — нечего группировать")
+                return {}
+
             logger.info('🚀🚀 Данные сгруппированы!')
             return result
 
         except Exception:
             logger.exception("Ошибка в группировке данных")
+            return {}
 
     def update_sheet(group: dict[str, pd.DataFrame], worksheet_name: str) -> None:
         gs = get_gspread_client()
+
+        if not group:
+            logger.warning(
+                "⛔️ Нет данных для обновления таблицы — update_sheet() не будет выполнен")
+            return
 
         try:
 

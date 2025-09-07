@@ -179,7 +179,8 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='campaign_query'),
         postprocess_func=group_advert_and_id,
-        exclude_names=['Мишнева', 'Шелудько']
+        cabinet={'Михаил': os.getenv('Rachel')}
+        # exclude_names=['Мишнева', 'Шелудько',]
 
 
     ))
