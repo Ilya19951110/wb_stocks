@@ -82,7 +82,7 @@
 
 🧑‍💻 Автор: Илья
 """
-
+from scripts.utils.prepare_values_df import prepare_values_for_sheets
 from scripts.utils.config.factory import get_client_info, tables_names, sheets_names
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
@@ -243,28 +243,28 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
         try:
             # получаем максимальное количество доступных строк и столбцов в листе Справочник OZ
-            sheet_rows_directory = upload_worksheet_directory_oz.row_count
-            sheet_cols_directory = upload_worksheet_directory_oz.col_count
+            # sheet_rows_directory = upload_worksheet_directory_oz.row_count
+            # sheet_cols_directory = upload_worksheet_directory_oz.col_count
 
             # очищаем диапозон с ячейки b1
-            if sheet_cols_directory > 1:
-                clear_range = f"B1:{gspread.utils.rowcol_to_a1(sheet_rows_directory, sheet_cols_directory)}"
-                upload_worksheet_directory_oz.batch_clear([clear_range])
-                logger.info(
-                    f"🧹 Очищен диапазон: {clear_range} в {table}, лист {sheet_directory_oz}")
+            # if sheet_cols_directory > 1:
+            #     clear_range = f"B1:{gspread.utils.rowcol_to_a1(sheet_rows_directory, sheet_cols_directory)}"
+            #     upload_worksheet_directory_oz.batch_clear([clear_range])
+            #     logger.info(
+            #         f"🧹 Очищен диапазон: {clear_range} в {table}, лист {sheet_directory_oz}")
 
-            else:
-                logger.warning(
-                    "ℹ️ В листе только столбец A — ничего не удалено.")
+            # else:
+            # logger.warning(
+            #     "ℹ️ В листе только столбец A — ничего не удалено.")
 
+            upload_worksheet_directory_oz.clear()
             logger.info(f'Выгружаю Справочник OZ в гугл таблицу: {table}')
 
-            set_with_dataframe(
-                upload_worksheet_directory_oz,
-                oz_directory,
-                row=1,
-                col=2
+            upload_worksheet_directory_oz.update(
+                [oz_directory.columns.tolist()] +
+                prepare_values_for_sheets(oz_directory)
             )
+
             logger.info(f"✅ Данные успешно загружены в: {table}")
 
         except Exception as e:
@@ -276,12 +276,11 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
             logger.info(f'Выгружаю данные в лист Справочник WB: {table}')
             upload_worksheet_directory_wb.clear()
 
-            set_with_dataframe(
-                upload_worksheet_directory_wb,
-                wb_directory,
-                row=1,
-                col=1
+            upload_worksheet_directory_wb(
+                [wb_directory.columns.tolist()] +
+                prepare_values_for_sheets(wb_directory)
             )
+
             logger.info(f'Справочник WB выгружен в таблицу: {table}')
         except Exception as e:
             msg = f"❌ Ошибка при выгрузке 'Справочник WB' в {table}: {e}"
@@ -298,12 +297,11 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
             logger.info(f'Выгружаю Баркода OZ в гугл таблицу: {table}')
 
-            set_with_dataframe(
-                upload_worksheet_barcode,
-                barcode,
-                row=1,
-                col=1
+            upload_worksheet_barcode(
+                [barcode.columns.tolist()] +
+                prepare_values_for_sheets(barcode)
             )
+
             logger.info(
                 f"✅ Данные успешно загружены в лист {worksheet_barcode_oz} таблицы {table}")
 

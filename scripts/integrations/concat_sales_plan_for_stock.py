@@ -52,7 +52,8 @@ def push_df_in_table(df: pd.DataFrame, spreadsheet: gspread.Spreadsheet, ws: str
             f"⬆️ Загружаю DataFrame в лист {ws}: {df.shape[0]} строк, {df.shape[1]} колонок")
 
         worksheet.update(
-            [df.columns.tolist()] + prepare_values_for_sheets(df)
+            [df.columns.tolist()] + prepare_values_for_sheets(df),
+
         )
 
         logger.info(f"✅ Успешно выгружено в {spreadsheet.title}/{ws}")
