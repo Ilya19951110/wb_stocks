@@ -52,20 +52,29 @@ def add_data_from_google_sheets(spreadsheet: gspread.Spreadsheet, ws: str, df: p
 
 if __name__ == '__main__':
     # РНП Азарья
-    filter_data = 'Азарья'
+    Azarya_filter_data = 'Азарья'
+    Rachel_filter_data = 'Рахель'
     gs = get_gspread_client()
 
-    download_table = 'РНП Азарья'
+    Rachel_download_table = 'РНП Рахель'
+    Azarya_download_table = 'РНП Азарья'
     WB_MATRIX_SPREADSHEET = gs.open(info_table['wb_matrix_complete'])
     all_directory_wb = get_data_from_google_sheet(
         WB_MATRIX_SPREADSHEET, info_sheet['directory_wb'])
 
-    AZARYA_SPREADSHEET = gs.open(download_table)
+    AZARYA_SPREADSHEET = gs.open(Azarya_download_table)
+    RACHEL_SPREADSHEET = gs.open(Rachel_download_table)
 
     add_data_from_google_sheets(
         AZARYA_SPREADSHEET,
         info_sheet['directory_wb'],
-        filtered_data_from_google_sheets(all_directory_wb, filter_data)
+        filtered_data_from_google_sheets(all_directory_wb, Azarya_filter_data),
+    )
+
+    add_data_from_google_sheets(
+        RACHEL_SPREADSHEET,
+        info_sheet['directory_wb'],
+        filtered_data_from_google_sheets(all_directory_wb, Rachel_filter_data),
     )
 
 

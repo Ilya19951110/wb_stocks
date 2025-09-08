@@ -1,6 +1,7 @@
 from scripts.utils.gspread_client import get_gspread_client
 import pandas as pd
 from scripts.utils.prepare_values_df import prepare_values_for_sheets
+import time
 
 import gspread
 from scripts.utils.setup_logger import make_logger
@@ -69,19 +70,15 @@ if __name__ == '__main__':
     worksheet_repo_sales = '8.План продаж'
     gs = get_gspread_client()
 
-    Azarya_download_table = 'РНП Азарья'
-
     CONTENT_TASKS_SPREADSHEET = gs.open('ЗАДАЧИ по КОНТЕНТУ и контроль CTR')
     SHELUDKO_SPREADSHEET = gs.open('План продаж ИП Шелудько')
     MISHNEVA_SPREADSHEET = gs.open('План продаж ИП Мишнева И')
     MANAGER_SPREADSHEET = gs.open('Таблица менеджера')
-    Azarya_ram_spreadsheet = gs.open('Фин модель Иосифовы Р А М')
 
-    download_table_spreadsheet = gs.open(Azarya_download_table)
+    FIN_MODEL_RAM_SPREADSHEET = gs.open('Фин модель Иосифовы Р А М')
 
-    df_as_ram = get_data_from_google_sheet(
-        Azarya_ram_spreadsheet, worksheet_repo_sales
-    )
+    RNP_AZARYA = gs.open('РНП Азарья')
+    RNP_RACHEL = gs.open('РНП Рахель')
 
     df_sheludko_and_mishneva = concat_plan_and_stock_to_manager(
         get_data_from_google_sheet(SHELUDKO_SPREADSHEET, worksheet),
@@ -100,9 +97,20 @@ if __name__ == '__main__':
         worksheet
     )
 
-    push_df_in_table(
-        df_as_ram, download_table_spreadsheet, worksheet_repo_sales
+    df_repo_sales = get_data_from_google_sheet(
+        FIN_MODEL_RAM_SPREADSHEET, worksheet_repo_sales
     )
 
+    # Пуш план продаж в Азарью
+    push_df_in_table(
+        df_repo_sales, RNP_AZARYA, worksheet_repo_sales
+    )
+
+    time.sleep(10)
+    logger.warning('Между Азарией и Рахель спим 30 сек!')
+    # Пуш план продаж в Рахель
+    push_df_in_table(
+        df_repo_sales, RNP_RACHEL, worksheet_repo_sales
+    )
 
 # py -m scripts.integrations.concat_sales_plan_for_stock

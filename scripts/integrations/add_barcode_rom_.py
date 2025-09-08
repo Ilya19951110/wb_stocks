@@ -39,7 +39,7 @@ def add_barcode_from_ful_matrix_in_matrix_in_gsh(spreadshet: gspread.Spreadsheet
 
 if __name__ == '__main__':
     gs = get_gspread_client()
-
+    ws = 'API WB barcode'
     info_table = tables_names()
 
     worksheet = sheets_names()['group_all_barcodes']
@@ -49,6 +49,7 @@ if __name__ == '__main__':
     extract_table_spreadsheet = gs.open(extract_table)
     add_table_spreadsheet = gs.open(add_table)
 
+    finger_puls_rachel_spreadsheet = gs.open('РНП Рахель')
     finger_puls_azarya_spreadsheet = gs.open('РНП Азарья')
     df = get_data_from_google_sheet(extract_table_spreadsheet, worksheet)
 
@@ -56,8 +57,12 @@ if __name__ == '__main__':
         add_table_spreadsheet, df, worksheet
     )
 
+    # выгрузка в рнп рахель
+    add_barcode_from_ful_matrix_in_matrix_in_gsh(
+        finger_puls_rachel_spreadsheet, df, ws
+    )
     # выгрузка в рнп азарью
     add_barcode_from_ful_matrix_in_matrix_in_gsh(
-        finger_puls_azarya_spreadsheet, df, 'API WB barcode'
+        finger_puls_azarya_spreadsheet, df, ws
     )
 # py -m scripts.integrations.add_barcode_rom_
