@@ -179,7 +179,7 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='campaign_query'),
         postprocess_func=group_advert_and_id,
-        cabinet={'Михаил': os.getenv('Rachel')}
+        cabinet={'Галилова': os.getenv('Galilova')}
         # exclude_names=['Мишнева', 'Шелудько',]
 
 
@@ -190,4 +190,3 @@ if __name__ == '__main__':
 
     end = time.time()
     send_tg_message(f"Время выполнения программы:\n{(end-begin)/60:.2f} минут")
-# py -m scripts.pipelines.get_advertising_report

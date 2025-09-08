@@ -1,87 +1,87 @@
-name: Weekly Sales + Advert (Mon 7am)
+# name: Weekly Sales + Advert (Mon 7am)
 
-on:
-  schedule:
-    - cron: '0 3 * * 1'  # 7am по Москве (UTC+3)
-  workflow_dispatch:
+# on:
+#   schedule:
+#     - cron: '0 3 * * 1'  # 7am по Москве (UTC+3)
+#   workflow_dispatch:
 
-env:
-  Azarya: ${{ secrets.AZARYA }}
-  Michael:  ${{ secrets.MICHAEL }}
-  Rachel:  ${{ secrets.RACHEL }}
-  Galilova:  ${{ secrets.GALILOVA }}
-  Martynenko:  ${{ secrets.MARTYNENKO }}
-  Melikhov: ${{ secrets.Melikhov }}
-  TG_TOKEN: ${{ secrets.TG_TOKEN }}
-  MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
+# env:
+#   Azarya: ${{ secrets.AZARYA }}
+#   Michael:  ${{ secrets.MICHAEL }}
+#   Rachel:  ${{ secrets.RACHEL }}
+#   Galilova:  ${{ secrets.GALILOVA }}
+#   Martynenko:  ${{ secrets.MARTYNENKO }}
+#   Melikhov: ${{ secrets.Melikhov }}
+#   TG_TOKEN: ${{ secrets.TG_TOKEN }}
+#   MY_TG_CHAT_ID: ${{ secrets.MY_TG_CHAT_ID }}
 
-defaults:
-  run:
-    shell: bash
+# defaults:
+#   run:
+#     shell: bash
 
-jobs:
-  sales-job:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+# jobs:
+#   sales-job:
+#     runs-on: ubuntu-latest
+#     continue-on-error: true
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.10'
 
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
+#       - name: Install Dependencies
+#         run: pip install -r requirements.txt
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+#       - name: Set PYTHONPATH
+#         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
-      - name: Decode Google Service Account Key
-        run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+#       - name: Decode Google Service Account Key
+#         run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
-      - name: Run Sales Funnel Script
-        run: python -m scripts.pipelines.get_sales_funnel
+#       - name: Run Sales Funnel Script
+#         run: python -m scripts.pipelines.get_sales_funnel
 
-      - name: Commit cache updates (if any)
-        run: |
-          git config --global user.email "bot@github.com"
-          git config --global user.name "GitHub Actions Bot"
-          git add cache/*.pkl || true
-          git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
-          git push || echo "No push needed"
+#       - name: Commit cache updates (if any)
+#         run: |
+#           git config --global user.email "bot@github.com"
+#           git config --global user.name "GitHub Actions Bot"
+#           git add cache/*.pkl || true
+#           git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
+#           git push || echo "No push needed"
 
-  advertising-job:
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+#   advertising-job:
+#     runs-on: ubuntu-latest
+#     continue-on-error: true
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+#       - name: Set up Python
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.10'
 
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
+#       - name: Install Dependencies
+#         run: pip install -r requirements.txt
 
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
+#       - name: Set PYTHONPATH
+#         run: echo "PYTHONPATH=${{ github.workspace }}" >> $GITHUB_ENV
 
-      - name: Decode Google Service Account Key
-        run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
+#       - name: Decode Google Service Account Key
+#         run: echo "${{ secrets.GOOGLE_SHEETS }}" | base64 -d > key.json
 
-      - name: Run Advertising Campaign Script
-        run: python -m scripts.pipelines.get_advertising_report
+#       - name: Run Advertising Campaign Script
+#         run: python -m scripts.pipelines.get_advertising_report
 
-      - name: Commit cache updates (if any)
-        run: |
-          git config --global user.email "bot@github.com"
-          git config --global user.name "GitHub Actions Bot"
-          git add cache/*.pkl || true
-          git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
-          git push || echo "No push needed"
+#       - name: Commit cache updates (if any)
+#         run: |
+#           git config --global user.email "bot@github.com"
+#           git config --global user.name "GitHub Actions Bot"
+#           git add cache/*.pkl || true
+#           git commit -m "♻️ update IDKT cache (auto)" || echo "No changes to commit"
+#           git push || echo "No push needed"
 
 

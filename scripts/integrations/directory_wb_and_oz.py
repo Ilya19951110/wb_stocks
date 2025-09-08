@@ -276,7 +276,7 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
             logger.info(f'Выгружаю данные в лист Справочник WB: {table}')
             upload_worksheet_directory_wb.clear()
 
-            upload_worksheet_directory_wb(
+            upload_worksheet_directory_wb.update(
                 [wb_directory.columns.tolist()] +
                 prepare_values_for_sheets(wb_directory)
             )
@@ -297,7 +297,7 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
             logger.info(f'Выгружаю Баркода OZ в гугл таблицу: {table}')
 
-            upload_worksheet_barcode(
+            upload_worksheet_barcode.update(
                 [barcode.columns.tolist()] +
                 prepare_values_for_sheets(barcode)
             )
