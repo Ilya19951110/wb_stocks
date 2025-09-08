@@ -26,6 +26,7 @@ def get_data_from_google_sheet(spreadsheet: gspread.Spreadsheet, worksheet: str)
 
 def concat_plan_and_stock_to_manager(*args):
     logger.info(f"🔄 Объединяю {len(args)} DataFrame в один")
+
     df = pd.concat([*args], ignore_index=True)
     logger.info(
         f"✅ Объединённый DataFrame: {df.shape[0]} строк, {df.shape[1]} колонок")
@@ -53,6 +54,7 @@ def push_df_in_table(df: pd.DataFrame, spreadsheet: gspread.Spreadsheet, ws: str
 
         worksheet.update(
             [df.columns.tolist()] + prepare_values_for_sheets(df),
+            value_input_option="USER_ENTERED"
 
         )
 
@@ -64,33 +66,42 @@ def push_df_in_table(df: pd.DataFrame, spreadsheet: gspread.Spreadsheet, ws: str
 
 if __name__ == '__main__':
     worksheet: str = 'Остатки API'
+    worksheet_repo_sales = '8.План продаж'
     gs = get_gspread_client()
 
-    SHELUDKO_TABLE = 'План продаж ИП Шелудько'
-    MISHNEVA_TABLE = 'План продаж ИП Мишнева И'
-    MANAGER_TABLE = 'Таблица менеджера'
-    CONTENT_TASKS = 'ЗАДАЧИ по КОНТЕНТУ и контроль CTR'
+    Azarya_download_table = 'РНП Азарья'
 
-    CONTENT_TASKS_SPREADSHEET = gs.open(CONTENT_TASKS)
-    SHELUDKO_SPREADSHEET = gs.open(SHELUDKO_TABLE)
-    MISHNEVA_SPREADSHEET = gs.open(MISHNEVA_TABLE)
-    MANAGER_SPREADSHEET = gs.open(MANAGER_TABLE)
+    CONTENT_TASKS_SPREADSHEET = gs.open('ЗАДАЧИ по КОНТЕНТУ и контроль CTR')
+    SHELUDKO_SPREADSHEET = gs.open('План продаж ИП Шелудько')
+    MISHNEVA_SPREADSHEET = gs.open('План продаж ИП Мишнева И')
+    MANAGER_SPREADSHEET = gs.open('Таблица менеджера')
+    Azarya_ram_spreadsheet = gs.open('Фин модель Иосифовы Р А М')
 
-    df = concat_plan_and_stock_to_manager(
+    download_table_spreadsheet = gs.open(Azarya_download_table)
+
+    df_as_ram = get_data_from_google_sheet(
+        Azarya_ram_spreadsheet, worksheet_repo_sales
+    )
+
+    df_sheludko_and_mishneva = concat_plan_and_stock_to_manager(
         get_data_from_google_sheet(SHELUDKO_SPREADSHEET, worksheet),
         get_data_from_google_sheet(MISHNEVA_SPREADSHEET, worksheet)
     )
 
     push_df_in_table(
-        df,
+        df_sheludko_and_mishneva,
         MANAGER_SPREADSHEET,
         worksheet
     )
 
     push_df_in_table(
-        df,
+        df_sheludko_and_mishneva,
         CONTENT_TASKS_SPREADSHEET,
         worksheet
+    )
+
+    push_df_in_table(
+        df_as_ram, download_table_spreadsheet, worksheet_repo_sales
     )
 
 

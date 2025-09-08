@@ -262,7 +262,8 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
             upload_worksheet_directory_oz.update(
                 [oz_directory.columns.tolist()] +
-                prepare_values_for_sheets(oz_directory)
+                prepare_values_for_sheets(oz_directory),
+                value_input_option="USER_ENTERED"
             )
 
             logger.info(f"✅ Данные успешно загружены в: {table}")
@@ -278,7 +279,8 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
             upload_worksheet_directory_wb.update(
                 [wb_directory.columns.tolist()] +
-                prepare_values_for_sheets(wb_directory)
+                prepare_values_for_sheets(wb_directory),
+                value_input_option="USER_ENTERED"
             )
 
             logger.info(f'Справочник WB выгружен в таблицу: {table}')
@@ -299,7 +301,8 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
             upload_worksheet_barcode.update(
                 [barcode.columns.tolist()] +
-                prepare_values_for_sheets(barcode)
+                prepare_values_for_sheets(barcode),
+                value_input_option="USER_ENTERED"
             )
 
             logger.info(

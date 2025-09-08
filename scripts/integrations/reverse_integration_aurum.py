@@ -53,7 +53,8 @@ def push_df_in_google_sheets(spreadsheet: gspread.Spreadsheet, df: pd.DataFrame,
             f"✍️ Записываю DataFrame в {spreadsheet.title}/{ws}: {df.shape[0]} строк, {df.shape[1]} колонок")
 
         worksheet.update(
-            [df.columns.tolist()] + prepare_values_for_sheets(df)
+            [df.columns.tolist()] + prepare_values_for_sheets(df),
+            value_input_option="USER_ENTERED"
         )
 
         logger.info(f"✅ Успешно выгружено в {spreadsheet.title}/{ws}")
