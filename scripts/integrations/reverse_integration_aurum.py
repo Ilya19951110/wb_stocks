@@ -3,8 +3,16 @@ from scripts.utils.prepare_values_df import prepare_values_for_sheets
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.setup_logger import make_logger
 import gspread
+import asyncio
 
 logger = make_logger(__name__, use_telegram=False)
+
+sem = asyncio.Semaphore(2)
+
+
+async def push_df_in_google_sheets_async(*args, **kwargs):
+    async with sem:
+        return await asyncio.to_thread(push_df_in_google_sheets(*args, **kwargs))
 
 
 def get_data_from_manager_table(spreadsheet: gspread.Spreadsheet, ws: str) -> pd.DataFrame:
