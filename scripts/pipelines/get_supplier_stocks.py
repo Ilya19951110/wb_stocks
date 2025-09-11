@@ -137,34 +137,53 @@ async def get_stocks(session: aiohttp.ClientSession, name: str, api: str) -> pd.
             'Price': 'Цена',
             'Discount': 'Скидка',
             'supplierArticle': 'Артикул поставщика'})
+
         # преобразуем столбец спарвка в нужный формат даты, например 2025-01-01
         data_stoks['Справка'] = pd.to_datetime(
-            data_stoks['Справка'], format='ISO8601').dt.date
+            data_stoks['Справка'],  errors='coerce').dt.date
 
+        logger.info(data_stoks['Справка'])
         # сортируем в порядке убывания
         df_sort = data_stoks.sort_values('Справка', ascending=False)
 
         # создаем новый столбец и подставяем туда последнюю актуальную цену
-        max_price = df_sort.loc[df_sort.groupby('Артикул WB',)[
-            'Цена'].idxmax()]
+        if name in ('Мишнева', 'Шелудько'):
+            max_price = (
+                data_stoks
+                .sort_values(['Артикул WB', 'Справка'], ascending=[True, False])
+                .drop_duplicates('Артикул WB')
+                [['Артикул WB', 'Цена']]
+                .rename(columns={'Цена': 'Макс_цена'})
+            )
 
-        # создаем новый столбец и подставяем туда последнюю актуальную цену скидку
-        max_discount = df_sort.loc[df_sort.groupby('Артикул WB')[
-            'Скидка'].idxmax()]
+            # создаем новый столбец и подставяем туда последнюю актуальную цену скидку
+            max_discount = (
+                data_stoks
+                .sort_values(['Артикул WB', 'Справка'], ascending=[True, False])
+                .drop_duplicates('Артикул WB')
+                [['Артикул WB', 'Скидка']]
+                .rename(columns={'Скидка': 'Макс_скидка'})
+            )
+        else:
+            df_sort = df_sort.merge(
+                max_price[[
+                    'Артикул WB', 'Цена'
+                ]].rename(columns={'Цена': 'Макс_цена'}),
+                on='Артикул WB',
+                how='left'
 
-        df_sort = df_sort.merge(
-            max_price[[
-                'Артикул WB', 'Цена'
-            ]].rename(columns={'Цена': 'Макс_цена'}),
-            on='Артикул WB',
-            how='left'
+            ).merge(
+                max_discount[[
+                    'Артикул WB', 'Скидка'
+                ]].rename(columns={'Скидка': 'Макс_скидка'}),
+                on='Артикул WB',
+                how='left'
+            )
 
-        ).merge(
-            max_discount[[
-                'Артикул WB', 'Скидка'
-            ]].rename(columns={'Скидка': 'Макс_скидка'}),
-            on='Артикул WB',
-            how='left'
+        df_sort = (
+            df_sort
+            .merge(max_price, on='Артикул WB', how='left')
+            .merge(max_discount, on='Артикул WB', how='left')
         )
 
         df_sort['Цена'] = df_sort['Макс_цена']
@@ -189,7 +208,8 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='get_stocks'),
         postprocess_func=merge_and_transform_stocks_with_idkt,
-        # cabinet={'Мишнева': os.getenv('Mishneva')}
+        cabinet={'Мишнева': os.getenv(
+            'Mishneva'), 'Шелудько': os.getenv('Sheludko')}
     ))
 
     fileterd_name = ['Мишнева', 'Шелудько']
