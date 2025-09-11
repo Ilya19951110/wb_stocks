@@ -208,8 +208,7 @@ if __name__ == '__main__':
         run_funck=partial(execute_run_cabinet,
                           func_name='get_stocks'),
         postprocess_func=merge_and_transform_stocks_with_idkt,
-        cabinet={'Мишнева': os.getenv(
-            'Mishneva'), 'Шелудько': os.getenv('Sheludko')}
+
     ))
 
     fileterd_name = ['Мишнева', 'Шелудько']
