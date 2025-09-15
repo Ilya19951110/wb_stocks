@@ -100,7 +100,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
     try:
         logger.info("🧹 Начинаем финальную очистку и обработку данных...")
         # Удаляем не нужные столбцы
-        result = result.drop(columns=[col for col in result.columns if col.endswith('_stocks')]+['Справка', 'warehouseName',
+        result = result.drop(columns=[col for col in result.columns if col.endswith('_stocks')]+['Дата Обновления', 'warehouseName',
                                                                                                  'quantity', 'inWayToClient', 'inWayFromClient',
                                                                                                  'category', 'subject', 'isRealization', 'SCCode', 'isSupply'], errors='ignore')
 

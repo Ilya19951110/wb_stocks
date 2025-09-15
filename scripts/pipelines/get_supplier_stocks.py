@@ -129,7 +129,7 @@ async def get_stocks(session: aiohttp.ClientSession, name: str, api: str) -> pd.
 
         data_stoks = data_stoks.rename(columns={
             'nmId': 'Артикул WB',
-            'lastChangeDate': 'Справка',
+            'lastChangeDate': 'Дата Обновления',
             'brand': 'Бренд',
             'techSize': 'Размер',
             'quantityFull': 'Итого остатки',
@@ -139,46 +139,48 @@ async def get_stocks(session: aiohttp.ClientSession, name: str, api: str) -> pd.
             'supplierArticle': 'Артикул поставщика'})
 
         # преобразуем столбец спарвка в нужный формат даты, например 2025-01-01
-        data_stoks['Справка'] = pd.to_datetime(
-            data_stoks['Справка'],  errors='coerce').dt.date
+        data_stoks['Дата Обновления'] = pd.to_datetime(
+            data_stoks['Дата Обновления'],  errors='coerce').dt.date
 
-        logger.info(data_stoks['Справка'])
+        logger.info(data_stoks['Дата Обновления'])
         # сортируем в порядке убывания
-        df_sort = data_stoks.sort_values('Справка', ascending=False)
+        df_sort = data_stoks.sort_values('Дата Обновления', ascending=False)
 
         # создаем новый столбец и подставяем туда последнюю актуальную цену
-        if name in ('Мишнева', 'Шелудько'):
-            max_price = (
-                data_stoks
-                .sort_values(['Артикул WB', 'Справка'], ascending=[True, False])
-                .drop_duplicates('Артикул WB')
-                [['Артикул WB', 'Цена']]
-                .rename(columns={'Цена': 'Макс_цена'})
-            )
 
-            # создаем новый столбец и подставяем туда последнюю актуальную цену скидку
-            max_discount = (
-                data_stoks
-                .sort_values(['Артикул WB', 'Справка'], ascending=[True, False])
-                .drop_duplicates('Артикул WB')
-                [['Артикул WB', 'Скидка']]
-                .rename(columns={'Скидка': 'Макс_скидка'})
-            )
-        else:
-            df_sort = df_sort.merge(
-                max_price[[
-                    'Артикул WB', 'Цена'
-                ]].rename(columns={'Цена': 'Макс_цена'}),
-                on='Артикул WB',
-                how='left'
+        last_date = data_stoks.groupby('Артикул WB')[
+            'Дата Обновления'].transform('max')
+        latest_rows = data_stoks[data_stoks['Дата Обновления'] == last_date]
 
-            ).merge(
-                max_discount[[
-                    'Артикул WB', 'Скидка'
-                ]].rename(columns={'Скидка': 'Макс_скидка'}),
-                on='Артикул WB',
-                how='left'
-            )
+        max_price = (
+            latest_rows
+            .groupby('Артикул WB', as_index=False)['Цена']
+            .max()
+            .rename(columns={'Цена': 'Макс_цена'})
+        )
+
+        max_discount = (
+            latest_rows
+            .groupby('Артикул WB', as_index=False)['Скидка']
+            .max()
+            .rename(columns={'Скидка': 'Макс_скидка'})
+        )
+        # max_price = (
+        #     data_stoks
+        #     .sort_values(['Артикул WB', 'Дата Обновления'], ascending=[True, False])
+        #     .drop_duplicates('Артикул WB')
+        #     [['Артикул WB', 'Цена']]
+        #     .rename(columns={'Цена': 'Макс_цена'})
+        # )
+
+        # # создаем новый столбец и подставяем туда последнюю актуальную цену скидку
+        # max_discount = (
+        #     data_stoks
+        #     .sort_values(['Артикул WB', 'Дата Обновления'], ascending=[True, False])
+        #     .drop_duplicates('Артикул WB')
+        #     [['Артикул WB', 'Скидка']]
+        #     .rename(columns={'Скидка': 'Макс_скидка'})
+        # )
 
         df_sort = (
             df_sort
@@ -209,6 +211,7 @@ if __name__ == '__main__':
                           func_name='get_stocks'),
         postprocess_func=merge_and_transform_stocks_with_idkt,
 
+        #
     ))
 
     fileterd_name = ['Мишнева', 'Шелудько']
@@ -228,26 +231,27 @@ if __name__ == '__main__':
         data=mishneva_sheludko_stocks
     )
 
-    push_concat_all_cabinet_stocks_to_sheets(
-        data=stocks_list,
-        sheet_name=sheets_names()['group_stocks_and_idkt'],
-        block_nmid=get_block_nmId(),
+    if stocks_list or article_seller:
+        push_concat_all_cabinet_stocks_to_sheets(
+            data=stocks_list,
+            sheet_name=sheets_names()['group_stocks_and_idkt'],
+            block_nmid=get_block_nmId(),
 
-    )
+        )
 
-    logger.info(
-        f"📦 Подготовлено {len(article_seller)} датафреймов для выгрузки баркодов")
+        logger.info(
+            f"📦 Подготовлено {len(article_seller)} датафреймов для выгрузки баркодов")
 
-    push_concat_all_cabinet_stocks_to_sheets(
-        data=article_seller,
-        sheet_name=sheets_names()['group_all_barcodes'],
-        clear_range=['A:D']
-    )
+        push_concat_all_cabinet_stocks_to_sheets(
+            data=article_seller,
+            sheet_name=sheets_names()['group_all_barcodes'],
+            clear_range=['A:D']
+        )
 
-    update_barcode(
-        data=result_data,
+        update_barcode(
+            data=result_data,
 
-    )
+        )
     end = time.time()
 
     logger.info(f"😎 Время выполнения: {(end-begin)/60:,.2f}")

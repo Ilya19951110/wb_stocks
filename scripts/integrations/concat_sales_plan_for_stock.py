@@ -105,9 +105,10 @@ if __name__ == '__main__':
     push_df_in_table(
         df_repo_sales, RNP_AZARYA, worksheet_repo_sales
     )
+    delay = 10
+    logger.warning(f'Между Азарией и Рахель спим {delay} сек!')
+    time.sleep(delay)
 
-    time.sleep(10)
-    logger.warning('Между Азарией и Рахель спим 30 сек!')
     # Пуш план продаж в Рахель
     push_df_in_table(
         df_repo_sales, RNP_RACHEL, worksheet_repo_sales
