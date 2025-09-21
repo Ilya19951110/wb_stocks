@@ -1,7 +1,7 @@
 from scripts.utils.gspread_client import get_gspread_client
 import pandas as pd
 from scripts.utils.prepare_values_df import prepare_values_for_sheets
-import time
+
 
 import gspread
 from scripts.utils.setup_logger import make_logger
@@ -66,52 +66,73 @@ def push_df_in_table(df: pd.DataFrame, spreadsheet: gspread.Spreadsheet, ws: str
 
 
 if __name__ == '__main__':
-    worksheet: str = 'Остатки API'
-    worksheet_repo_sales = '8.План продаж'
+   
     gs = get_gspread_client()
 
-    CONTENT_TASKS_SPREADSHEET = gs.open('ЗАДАЧИ по КОНТЕНТУ и контроль CTR')
-    SHELUDKO_SPREADSHEET = gs.open('План продаж ИП Шелудько')
-    MISHNEVA_SPREADSHEET = gs.open('План продаж ИП Мишнева И')
-    MANAGER_SPREADSHEET = gs.open('Таблица менеджера')
-
-    FIN_MODEL_RAM_SPREADSHEET = gs.open('Фин модель Иосифовы Р А М')
-
-    RNP_AZARYA = gs.open('РНП Азарья')
-    RNP_RACHEL = gs.open('РНП Рахель')
-
-    df_sheludko_and_mishneva = concat_plan_and_stock_to_manager(
-        get_data_from_google_sheet(SHELUDKO_SPREADSHEET, worksheet),
-        get_data_from_google_sheet(MISHNEVA_SPREADSHEET, worksheet)
+    SHM = {
+            'spreadsheet_sh':gs.open('План продаж ИП Шелудько'),
+            'spreadsheet_m':gs.open('План продаж ИП Мишнева И'),
+            'func':get_data_from_google_sheet,
+            'worksheet': 'Остатки API',
+            'concat_func':concat_plan_and_stock_to_manager
+        }
+    
+    fin_model_ram = {
+            'spreadsheet': gs.open('Фин модель Иосифовы Р А М'),
+            'worksheet': '8.План продаж',
+            'func': get_data_from_google_sheet,
+        }
+    
+    df_shm = SHM['concat_func'](
+        SHM['func'](SHM['spreadsheet_sh'], SHM['worksheet']),
+        SHM['func'](SHM['spreadsheet_m'], SHM['worksheet']),
     )
 
-    push_df_in_table(
-        df_sheludko_and_mishneva,
-        MANAGER_SPREADSHEET,
-        worksheet
+  
+    
+    df_repo_sales = fin_model_ram['func'](
+        fin_model_ram['spreadsheet'], fin_model_ram['worksheet']
     )
+    info = {
+        'Рахель':{
+            'spreadsheet': gs.open('РНП Рахель'),
+             'worksheet': '8.План продаж',
+             'func': push_df_in_table,
+             'df': df_repo_sales
+        },
+        'Азарья': {
+            'spreadsheet': gs.open('РНП Азарья'),
+            'worksheet': '8.План продаж',
+            'func': push_df_in_table,
+            'df': df_repo_sales
+        },
+        
+        'content_tasks_spreadsheet': {
+            'spreadsheet':gs.open('ЗАДАЧИ по КОНТЕНТУ и контроль CTR'),
+            'worksheet': 'Остатки API',
+            'func': push_df_in_table,
+            'df': df_shm
+        },
+       
+        'manager_table':{
+            'spreadsheet': gs.open('Таблица менеджера'),
+            'worksheet': 'Остатки API',
+            'func': push_df_in_table,
+            'df': df_shm
+        }
+    }
 
-    push_df_in_table(
-        df_sheludko_and_mishneva,
-        CONTENT_TASKS_SPREADSHEET,
-        worksheet
-    )
 
-    df_repo_sales = get_data_from_google_sheet(
-        FIN_MODEL_RAM_SPREADSHEET, worksheet_repo_sales
-    )
+    for name, conf in info.items():
+        try:
+            logger.info(f"📂 [{name}] Загружаю данные в лист '{conf['worksheet']}'...")
 
-    # Пуш план продаж в Азарью
-    push_df_in_table(
-        df_repo_sales, RNP_AZARYA, worksheet_repo_sales
-    )
-    delay = 10
-    logger.warning(f'Между Азарией и Рахель спим {delay} сек!')
-    time.sleep(delay)
+            conf['func'](conf['df'], conf['spreadsheet'], conf['worksheet'])
 
-    # Пуш план продаж в Рахель
-    push_df_in_table(
-        df_repo_sales, RNP_RACHEL, worksheet_repo_sales
-    )
+            logger.info(f"✅ [{name}] Данные успешно загружены")
+        except Exception as e:
+            logger.exception(f"❌ [{name}] Ошибка при обновлении: {e}")
 
+logger.info("🎉 Все обновления завершены!")
+        
 # py -m scripts.integrations.concat_sales_plan_for_stock

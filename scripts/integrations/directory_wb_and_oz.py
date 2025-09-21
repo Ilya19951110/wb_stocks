@@ -87,79 +87,16 @@ from scripts.utils.config.factory import get_client_info, tables_names, sheets_n
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.telegram_logger import send_tg_message
 from scripts.utils.setup_logger import make_logger
-from gspread_dataframe import set_with_dataframe
 from datetime import datetime
 import pandas as pd
 import gspread
-
+from gspread.utils import rowcol_to_a1
 
 logger = make_logger(__name__, use_telegram=False)
 
 
 def request_oz_and_wb_product_range_matrix() -> tuple[dict[str, pd.DataFrame], str, str, gspread.client.Client]:
-    """
-📊 Ассортиментная матрица: интеграция OZON + WB → Google Sheets
 
-Этот модуль автоматически выгружает отфильтрованные справочники по ИП из двух ассортиментных матриц:
-- Wildberries (WB)
-- Ozon (OZ)
-
-Результаты загружаются в итоговые Google-таблицы для каждого предпринимателя, указанных в `get_finmodel_to_cabinet_map()`.
-
-────────────────────────────────────────────────────────────────────────────
-
-📌 Основные функции:
-
-▪ request_oz_and_wb_product_range_matrix() → tuple
-    Получает и фильтрует таблицы WB и OZ по ИП. Возвращает:
-    - Словарь: {имя итоговой таблицы: (df_ozon, df_wb, df_barcodes)}
-    - Названия листов: directory_oz, barcodes_oz, directory_wb
-    - Авторизованный gspread клиент
-
-▪ upload_to_sheet(data_dict, sheet_directory_oz, worksheet_barcode_oz, sheet_directory_wb, gs)
-    Загружает полученные датафреймы в соответствующие листы итоговых таблиц.
-    Предварительно очищает старые данные (начиная с B1, кроме barcodes).
-
-────────────────────────────────────────────────────────────────────────────
-
-📦 Используемые библиотеки:
-- pandas                → обработка табличных данных
-- gspread               → взаимодействие с Google Sheets API
-- gspread_dataframe     → выгрузка pandas.DataFrame в Google Sheet
-- colorlog, logging     → логирование в терминал/файл
-- custom utils:
-    - get_gspread_client → авторизация в Sheets API
-    - send_tg_message    → отправка логов в Telegram
-    - get_assortment_matrix_complete / OZON
-    - get_finmodel_to_cabinet_map → список целевых таблиц и фильтров
-    - sheets_names       → названия рабочих листов
-
-────────────────────────────────────────────────────────────────────────────
-
-🧾 Структура table_entrepreneur:
-
-Пример:
-{
-    'Фин модель Иосифовы Р А М': ('Gabriel', ['Рахель', 'Михаил', 'Азарья']),
-    'Фин модель Галилова':       ('Havva', ['Галилова']),
-}
-
-→ Ключ: название итоговой таблицы
-→ Значение: кортеж (фильтр по OZON, фильтры по WB)
-
-────────────────────────────────────────────────────────────────────────────
-
-⚙️ Запуск:
-
-    $ python -m scripts.integrations.directory_wb_and_oz
-
-→ Отправит уведомление в Telegram, выполнит обновление всех целевых таблиц по списку.
-
-────────────────────────────────────────────────────────────────────────────
-
-🧑‍💻 Автор: Илья
-📅 Версия: Июль 2025
-"""
     gs = get_gspread_client()
 
     table_entrepreneur = get_client_info()['finmodel_map']
@@ -242,28 +179,19 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
             logger.error(msg)
 
         try:
-            # получаем максимальное количество доступных строк и столбцов в листе Справочник OZ
-            # sheet_rows_directory = upload_worksheet_directory_oz.row_count
-            # sheet_cols_directory = upload_worksheet_directory_oz.col_count
+            row, col = oz_directory.shape
+            end_cell = rowcol_to_a1(row + 1, col)
+            logger.debug(f"Справочник OZ end_cell: {end_cell}".upper())
 
-            # очищаем диапозон с ячейки b1
-            # if sheet_cols_directory > 1:
-            #     clear_range = f"B1:{gspread.utils.rowcol_to_a1(sheet_rows_directory, sheet_cols_directory)}"
-            #     upload_worksheet_directory_oz.batch_clear([clear_range])
-            #     logger.info(
-            #         f"🧹 Очищен диапазон: {clear_range} в {table}, лист {sheet_directory_oz}")
+            upload_worksheet_directory_oz.batch_clear([f"A2:{end_cell}"])
 
-            # else:
-            # logger.warning(
-            #     "ℹ️ В листе только столбец A — ничего не удалено.")
-
-            upload_worksheet_directory_oz.clear()
+           
             logger.info(f'Выгружаю Справочник OZ в гугл таблицу: {table}')
 
             upload_worksheet_directory_oz.update(
-                [oz_directory.columns.tolist()] +
-                prepare_values_for_sheets(oz_directory),
-                value_input_option="USER_ENTERED"
+                values=prepare_values_for_sheets(oz_directory),
+                value_input_option="USER_ENTERED",
+                range_name='A2'
             )
 
             logger.info(f"✅ Данные успешно загружены в: {table}")
@@ -275,12 +203,16 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
         try:
             logger.info(f'Выгружаю данные в лист Справочник WB: {table}')
-            upload_worksheet_directory_wb.clear()
+            row, col = wb_directory.shape
+            end_cell = rowcol_to_a1(row + 1, col)
+            logger.debug(f"Справочник WB end_cell: {end_cell}".upper())
+
+            upload_worksheet_directory_wb.batch_clear([f"A2:{end_cell}"])
 
             upload_worksheet_directory_wb.update(
-                [wb_directory.columns.tolist()] +
-                prepare_values_for_sheets(wb_directory),
-                value_input_option="USER_ENTERED"
+                values=prepare_values_for_sheets(wb_directory),
+                value_input_option="USER_ENTERED",
+                range_name="A2"
             )
 
             logger.info(f'Справочник WB выгружен в таблицу: {table}')
@@ -290,19 +222,22 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
             logger.error(msg)
 
         try:
+            row, col = barcode.shape
+            end_cell = rowcol_to_a1(row + 1, col)
             logger.info(f'Очищаю диапозон листа: {worksheet_barcode_oz}')
-            clear_range_barcode = f"A1:{gspread.utils.rowcol_to_a1(upload_worksheet_barcode.row_count, 3)}"
-            upload_worksheet_barcode.batch_clear([clear_range_barcode])
+
+            upload_worksheet_barcode.batch_clear([f"A2:{rowcol_to_a1(f"A2:{end_cell}", 3)}"])
 
             logger.info(
-                f'Очищен диапозон: {clear_range_barcode} в {table}, лист {worksheet_barcode_oz}')
+                f'Очищен диапозон: {end_cell} в {table}, лист {worksheet_barcode_oz}')
 
             logger.info(f'Выгружаю Баркода OZ в гугл таблицу: {table}')
 
             upload_worksheet_barcode.update(
                 [barcode.columns.tolist()] +
                 prepare_values_for_sheets(barcode),
-                value_input_option="USER_ENTERED"
+                value_input_option="USER_ENTERED",
+                range_name='A2'
             )
 
             logger.info(

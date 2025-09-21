@@ -17,7 +17,10 @@ def add_barcode_from_ful_matrix_in_matrix_in_gsh(spreadshet: gspread.Spreadsheet
         logger.info(f"✅ Лист '{ws}' успешно найден")
 
         logger.info(f"🧹 Очищаю содержимое листа '{ws}'")
-        worksheet.clear()
+
+        row, col = df.shape
+
+        worksheet.batch_clear([f"A2:{chr(64+col)}{row+1}"])
 
     except Exception as e:
         logger.warning(f"⚠️ Лист '{ws}' не найден, создаю новый. Ошибка: {e}")
@@ -28,8 +31,9 @@ def add_barcode_from_ful_matrix_in_matrix_in_gsh(spreadshet: gspread.Spreadsheet
         logger.info(
             f"⬆️ Начинаю загрузку DataFrame в лист '{ws}' ({len(df)} строк, {len(df.columns)} колонок)")
         worksheet.update(
-            [df.columns.tolist()] + prepare_values_for_sheets(df),
-            value_input_option="USER_ENTERED"
+            values=prepare_values_for_sheets(df),
+            value_input_option="USER_ENTERED",
+            range_name="A2"
         )
         logger.info(f"✅ Данные успешно загружены в лист '{ws}'")
 
@@ -39,30 +43,44 @@ def add_barcode_from_ful_matrix_in_matrix_in_gsh(spreadshet: gspread.Spreadsheet
 
 if __name__ == '__main__':
     gs = get_gspread_client()
-    ws = 'API WB barcode'
+    
     info_table = tables_names()
 
+   
+    # возвращаем дф из асортиментной матрицы полной 
     worksheet = sheets_names()['group_all_barcodes']
-    extract_table = info_table['wb_matrix_complete']
-    add_table = info_table['oz_matrix_complete']
+    df =  get_data_from_google_sheet(gs.open(info_table['wb_matrix_complete']), worksheet),
 
-    extract_table_spreadsheet = gs.open(extract_table)
-    add_table_spreadsheet = gs.open(add_table)
+    info = {
+        'ОЗОН':{
+            'spreadsheet': gs.open(info_table['oz_matrix_complete']),
+            'ws': worksheet
+        },  
+        'Рахель':{
+            'spreadsheet':  gs.open('РНП Рахель'),
+            'ws':'API WB barcode',
+        },
+        'Азарья':{
+            'spreadsheet': gs.open('РНП Азарья'),
+            'ws':'API WB barcode',
+        },
+    }
+    
+    logger.info("🚀 Начинаем загрузку баркодов во все таблицы...")
 
-    finger_puls_rachel_spreadsheet = gs.open('РНП Рахель')
-    finger_puls_azarya_spreadsheet = gs.open('РНП Азарья')
-    df = get_data_from_google_sheet(extract_table_spreadsheet, worksheet)
+    for name, conf in info.items():
+        logger.info(f"📂 [{name}] Начинаю обновление листа: {conf['ws']}")
 
-    add_barcode_from_ful_matrix_in_matrix_in_gsh(
-        add_table_spreadsheet, df, worksheet
-    )
+        try:
+            add_barcode_from_ful_matrix_in_matrix_in_gsh(
+                conf['spreadsheet'], df, conf['ws']
+            )
+            logger.info(f"✅ [{name}] Данные успешно обновлены в листе '{conf['ws']}'")
 
-    # выгрузка в рнп рахель
-    add_barcode_from_ful_matrix_in_matrix_in_gsh(
-        finger_puls_rachel_spreadsheet, df, ws
-    )
-    # выгрузка в рнп азарью
-    add_barcode_from_ful_matrix_in_matrix_in_gsh(
-        finger_puls_azarya_spreadsheet, df, ws
-    )
+        except Exception as e:
+            logger.exception(f"❌ [{name}] Ошибка при обновлении: {e}")
+
+    logger.info("🎉 Все обновления завершены!")
+    
+    
 # py -m scripts.integrations.add_barcode_rom_

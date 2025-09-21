@@ -12,7 +12,7 @@ def make_logger(name: str, use_telegram: bool = False) -> logging.Logger:
     logger = logging.getLogger(name)
 
     if not logger.hasHandlers():
-        logger.setLevel(logging.INFO)
+        logger.setLevel(logging.DEBUG)
 
         handler = colorlog.StreamHandler()
         handler.setFormatter(colorlog.ColoredFormatter(
