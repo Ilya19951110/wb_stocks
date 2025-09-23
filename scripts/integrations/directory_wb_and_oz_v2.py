@@ -75,7 +75,7 @@ if __name__ == '__main__':
         WB_MATRIX_SPREADSHEET, directory_wb)
     
     
-    # art = all_directory_wb[all_directory_wb['Артикул WB'] == 327998350]
+  
 
     df = filtered_data_from_google_sheets(
         all_directory_wb, 'Рахель'
@@ -83,23 +83,7 @@ if __name__ == '__main__':
   
    
     
-    # for table, conf in info.items():
-
-    #     if conf['filtered_data'] not in ():
-    #         continue
-
-    #     df = filtered_data_from_google_sheets(
-    #         all_directory_wb, conf['filtered_data']
-    #     )
-
-    #     add_data_from_google_sheets(
-    #         conf['spreadsheet'],
-    #         directory_wb,
-    #         df,
-    #     )
     
-   
-
 
 
 

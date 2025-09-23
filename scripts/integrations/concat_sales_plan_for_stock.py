@@ -79,7 +79,7 @@ if __name__ == '__main__':
     
     fin_model_ram = {
             'spreadsheet': gs.open('Фин модель Иосифовы Р А М'),
-            'worksheet': '8.План продаж',
+            'worksheet': 'План продаж',
             'func': get_data_from_google_sheet,
         }
     
@@ -96,13 +96,13 @@ if __name__ == '__main__':
     info = {
         'Рахель':{
             'spreadsheet': gs.open('РНП Рахель'),
-             'worksheet': '8.План продаж',
+             'worksheet': 'План продаж',
              'func': push_df_in_table,
              'df': df_repo_sales
         },
         'Азарья': {
             'spreadsheet': gs.open('РНП Азарья'),
-            'worksheet': '8.План продаж',
+            'worksheet': 'План продаж',
             'func': push_df_in_table,
             'df': df_repo_sales
         },

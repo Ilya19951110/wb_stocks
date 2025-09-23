@@ -100,7 +100,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
     try:
         logger.info("🧹 Начинаем финальную очистку и обработку данных...")
         # Удаляем не нужные столбцы
-        result = result.drop(columns=[col for col in result.columns if col.endswith('_stocks')]+['Дата Обновления', 'warehouseName',
+        result = result.drop(columns=[col for col in result.columns if col.endswith('_stocks')]+['warehouseName',
                                                                                                  'quantity', 'inWayToClient', 'inWayFromClient',
                                                                                                  'category', 'subject', 'isRealization', 'SCCode', 'isSupply'], errors='ignore')
 
@@ -116,6 +116,8 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
                        ]
 
         # Заполняем NAN в Цена и Скидка последними известными знач для артикула
+        result['Дата Обновления'] = result['Дата Обновления'].astype(str)
+
         result[['Цена', 'Скидка']] = result.groupby(
             'Артикул WB')[['Цена', 'Скидка']].ffill()
         # заполняем пустоты нужными значениями
@@ -160,7 +162,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
 
         new_order = [
             'Артикул WB', 'ID KT', 'Артикул поставщика', 'Бренд', 'Наименование', 'Категория',
-            'Итого остатки', 'Цена', 'Скидка', 'Цена до СПП', 'Фото', 'Ширина', 'Высота', 'Длина'
+            'Итого остатки', 'Цена', 'Скидка', 'Цена до СПП', 'Фото', 'Ширина', 'Высота', 'Длина', 'Дата Обновления'
         ]
 
         # применяем новое расположение
@@ -186,7 +188,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         send_tg_message(msg)
         logger.error(msg)
 
-    send_tg_message(
-        f"✅ merge_and_transform_stocks_with_idkt завершена для {name}, строк: {len(result)}")
+    if name in ('Мишнева', 'Шелудько'):
+        result = result.drop(columns=['Дата Обновления'])
 
     return result, seller_article
