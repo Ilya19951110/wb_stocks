@@ -101,7 +101,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         logger.info("🧹 Начинаем финальную очистку и обработку данных...")
         # Удаляем не нужные столбцы
         result = result.drop(columns=[col for col in result.columns if col.endswith('_stocks')]+['warehouseName',
-                                                                                                 'quantity', 'inWayToClient', 'inWayFromClient',
+                                                                                                 'inWayToClient', 'inWayFromClient',
                                                                                                  'category', 'subject', 'isRealization', 'SCCode', 'isSupply'], errors='ignore')
 
         # удаляем суффиксы _IDKT у столбцов, которые остались
@@ -111,13 +111,15 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
 
         # выбираем столбцы
         num_col = ['Цена', 'Скидка',
-                   'Итого остатки', 'Ширина', 'Высота', 'Длина']
+                   'Итого остатки', 'Ширина', 'Высота', 'Длина', 'quantity']
         string_cols = ['Бренд', 'Размер', 'Категория', 'Наименование',
                        ]
 
         # Заполняем NAN в Цена и Скидка последними известными знач для артикула
+        logger.debug('Дошли до даты обновления')
         result['Дата Обновления'] = result['Дата Обновления'].astype(str)
 
+        logger.info('Групируем Цена и Скидка')
         result[['Цена', 'Скидка']] = result.groupby(
             'Артикул WB')[['Цена', 'Скидка']].ffill()
         # заполняем пустоты нужными значениями
@@ -125,6 +127,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         result[string_cols] = result[string_cols].fillna('-')
 
         # сохраняем только те строки, которые есть в таблице stocks остатки
+        logger.info('Удаляем right_only')
         right_only_rows = result[result['_merge'] == 'right_only']
 
         # в осноном дф удаляем строки которые есть только в правой таблице, они косячные
@@ -134,10 +137,17 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         result = result.drop(columns='_merge')
 
         # группируем по столбцу итого остатки
+        logger.debug('Группируем Итого остатки')
         result = result.groupby([
-            col for col in result.columns if col != 'Итого остатки'
-        ])['Итого остатки'].sum().reset_index()
+            col for col in result.columns if col != 'Итого остатки' and col !='quantity'
+        ]).agg({
+            'quantity': 'sum',
+            'Итого остатки':'sum'
+        }).reset_index()
 
+        logger.debug(result.columns.tolist())
+        logger.info(result.head(5))
+        # ['Итого остатки'].sum().reset_index()
         # Создаем новый столбец Цена до СПП
         result['Цена до СПП'] = result['Цена'] * \
             (1 - result['Скидка']/100)
@@ -160,16 +170,19 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
             col for col in result.columns if col != 'Итого остатки'
         ])['Итого остатки'].sum().reset_index()
 
+        result['Кабинет'] = name
+        
         new_order = [
             'Артикул WB', 'ID KT', 'Артикул поставщика', 'Бренд', 'Наименование', 'Категория',
-            'Итого остатки', 'Цена', 'Скидка', 'Цена до СПП', 'Фото', 'Ширина', 'Высота', 'Длина', 'Дата Обновления'
+            'Итого остатки', 'Цена', 'Скидка', 'Цена до СПП', 'Фото', 'Ширина', 'Высота', 'Длина', 'Кабинет','Дата Обновления', 'quantity'
         ]
 
         # применяем новое расположение
-        result = result[new_order]
+        result = result[new_order].rename(columns={'quantity': 'Остатки'})
+      
 
         result = result.sort_values('Итого остатки', ascending=False)
-        result['Кабинет'] = name
+        
 
         if len(right_only_rows) > 0:
             logger.warning(
@@ -189,6 +202,6 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         logger.error(msg)
 
     if name in ('Мишнева', 'Шелудько'):
-        result = result.drop(columns=['Дата Обновления'])
+        result = result.drop(columns=['Дата Обновления', 'Остатки'])
 
     return result, seller_article

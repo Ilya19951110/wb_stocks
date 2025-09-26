@@ -226,7 +226,7 @@ def upload_to_sheet(data_dict: dict[str, tuple[pd.DataFrame, pd.DataFrame, pd.Da
             end_cell = rowcol_to_a1(row + 1, col)
             logger.info(f'Очищаю диапозон листа: {worksheet_barcode_oz}')
 
-            upload_worksheet_barcode.batch_clear([f"A2:{rowcol_to_a1(f"A2:{end_cell}", 3)}"])
+            upload_worksheet_barcode.batch_clear([f"A2:{end_cell}"])
 
             logger.info(
                 f'Очищен диапозон: {end_cell} в {table}, лист {worksheet_barcode_oz}')

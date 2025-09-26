@@ -1,4 +1,4 @@
-name: WB Directory and OZ Directory and MyWarehouse and price transfer_am_in_oz integrations
+name: WB Directory and OZ Directory  and price transfer_am_in_oz integrations
 
 on:
   schedule:
@@ -46,13 +46,16 @@ jobs:
         run: python -m scripts.integrations.price_transfer_in_oz
       
       - name: Wait 2 minutes before concat
-        run:  sleep 120
+        run:  sleep 60
 
       - name: Run concat Sheludko and Mishneva in manager table
         run: python -m scripts.integrations.concat_sales_plan_for_stock
 
       - name: Wait 2 minutes before concat
-        run:  sleep 120
+        run:  sleep 60
 
       - name: Run revers integration from manager table in Sheludko sales and Mishneva sales
         run: python -m scripts.integrations.reverse_integration_aurum
+
+      - name: Run directory_wb_oz_v2
+        run: python -m scripts.integrations.directory_wb_and_oz_v2

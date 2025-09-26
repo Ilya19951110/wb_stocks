@@ -70,17 +70,22 @@ if __name__ == '__main__':
             'filtered_data': 'Азарья'
         }
     }
-    
+
     all_directory_wb = get_data_from_google_sheet(
         WB_MATRIX_SPREADSHEET, directory_wb)
     
-    
-  
+    for table, conf in info.items():
+        df = filtered_data_from_google_sheets(
+            all_directory_wb, conf['filtered_data']
+        )
 
-    df = filtered_data_from_google_sheets(
-        all_directory_wb, 'Рахель'
-    )
-  
+        logger.debug(f"Выгружаю отфильтрованный дф в {table}")
+        add_data_from_google_sheets(
+            conf['spreadsheet'],
+            directory_wb,
+            df
+        )
+    
    
     
     
