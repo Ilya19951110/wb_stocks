@@ -124,6 +124,7 @@ def get_requests_url_wb() -> dict[str, str]:
         'report_detail': 'https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail',
         'supplier_stocks': "https://statistics-api.wildberries.ru/api/v1/supplier/stocks",
         'tariffs_box': "https://common-api.wildberries.ru/api/v1/tariffs/box",
+        'delete_cards': "https://content-api.wildberries.ru/content/v2/cards/delete/trash"
     }
 
 

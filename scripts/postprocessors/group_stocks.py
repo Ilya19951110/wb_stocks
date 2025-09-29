@@ -56,8 +56,48 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
     🗓 Версия: Июль 2025
     """
 
-    send_tg_message(
-        f"🚀 Запущена функция merge_and_transform_stocks_with_idkt для кабинета: {name}")
+    stocks['Дата Обновления'] = pd.to_datetime(
+            stocks['Дата Обновления'],  errors='coerce').dt.date
+
+    logger.info(stocks['Дата Обновления'])
+        # сортируем в порядке убывания
+    df_sort = stocks.sort_values('Дата Обновления', ascending=False)
+
+        # создаем новый столбец и подставяем туда последнюю актуальную цену
+
+    last_date = stocks.groupby('Артикул WB')[
+            'Дата Обновления'].transform('max')
+        
+    latest_rows = stocks[stocks['Дата Обновления'] == last_date]
+
+       
+    max_price = (
+            latest_rows
+            .groupby('Артикул WB', as_index=False)['Цена']
+            .max()
+            .rename(columns={'Цена': 'Макс_цена'})
+        )
+
+    max_discount = (
+            latest_rows
+            .groupby('Артикул WB', as_index=False)['Скидка']
+            .max()
+            .rename(columns={'Скидка': 'Макс_скидка'})
+        )
+    df_sort = (
+            df_sort
+            .merge(max_price, on='Артикул WB', how='left')
+            .merge(max_discount, on='Артикул WB', how='left')
+        )
+
+    df_sort['Цена'] = df_sort['Макс_цена']
+    df_sort['Скидка'] = df_sort['Макс_скидка']
+    df_sort = df_sort.drop(['Макс_цена', 'Макс_скидка',], axis=1)
+
+    if name not in ('Мишнева', 'Шелудько'):
+        logger.warning(f"{name} зашли в дату обновления last_date")
+        df_sort['Дата Обновления'] = last_date
+
     try:
         logger.info(
             "📊 Приводим типы данных в столбцах [Артикул WB, Баркод, Размер, ID KT]...")
@@ -116,10 +156,8 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
                        ]
 
         # Заполняем NAN в Цена и Скидка последними известными знач для артикула
-        logger.debug('Дошли до даты обновления')
         result['Дата Обновления'] = result['Дата Обновления'].astype(str)
 
-        logger.info('Групируем Цена и Скидка')
         result[['Цена', 'Скидка']] = result.groupby(
             'Артикул WB')[['Цена', 'Скидка']].ffill()
         # заполняем пустоты нужными значениями
@@ -127,7 +165,6 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         result[string_cols] = result[string_cols].fillna('-')
 
         # сохраняем только те строки, которые есть в таблице stocks остатки
-        logger.info('Удаляем right_only')
         right_only_rows = result[result['_merge'] == 'right_only']
 
         # в осноном дф удаляем строки которые есть только в правой таблице, они косячные
@@ -158,9 +195,9 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
             'Артикул WB', 'Баркод', 'Артикул поставщика', 'Размер'
         ])
 
-        result = result.drop(columns=[
-            'Баркод', 'Размер'
-        ])
+        # result = result.drop(columns=[
+        #     'Баркод', 'Размер'
+        # ])
 
         result[['Цена', 'Скидка', 'Цена до СПП']] = result.groupby(
             'Артикул WB')[['Цена', 'Скидка', 'Цена до СПП']].transform('first')
@@ -174,7 +211,7 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         
         new_order = [
             'Артикул WB', 'ID KT', 'Артикул поставщика', 'Бренд', 'Наименование', 'Категория',
-            'Итого остатки', 'Цена', 'Скидка', 'Цена до СПП', 'Фото', 'Ширина', 'Высота', 'Длина', 'Кабинет','Дата Обновления', 'quantity'
+            'Итого остатки', 'Цена', 'Скидка', 'Цена до СПП', 'Фото', 'Ширина', 'Высота', 'Длина', 'Кабинет', 'Баркод', 'Размер', 'Дата Обновления', 'quantity'
         ]
 
         # применяем новое расположение
@@ -201,7 +238,8 @@ def merge_and_transform_stocks_with_idkt(stocks: pd.DataFrame, IDKT: pd.DataFram
         send_tg_message(msg)
         logger.error(msg)
 
+    logger.debug(f"\n{name} -> {result.columns.tolist()}")
     if name in ('Мишнева', 'Шелудько'):
-        result = result.drop(columns=['Дата Обновления', 'Остатки'])
+        result = result.drop(columns=['Дата Обновления', 'Остатки',  'Баркод', 'Размер'])
 
     return result, seller_article

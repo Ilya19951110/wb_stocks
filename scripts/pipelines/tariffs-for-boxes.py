@@ -1,7 +1,8 @@
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.config.factory import get_requests_url_wb
-from utils.config.factory import sheets_names, tables_names
+from scripts.utils.config.factory import sheets_names, tables_names
 from gspread_dataframe import set_with_dataframe
+from datetime import datetime
 from scripts.utils.telegram_logger import send_tg_message
 import pandas as pd
 import requests
@@ -9,48 +10,7 @@ import os
 
 
 def tariffs_for_boxes(clear_range: list[str] = ['A:H']) -> None:
-    """
-    📦 Загрузка тарифов WB по коробам в Google Таблицу
-
-    Скрипт обращается к API Wildberries, чтобы получить актуальные данные по тарифам
-    на доставку и хранение коробов на складах. Результат сохраняется на соответствующий лист
-    Google Таблицы, предварительно очищая указанный диапазон.
-
-    Параметры:
-    ----------
-    clear_range : list[str], optional
-        Диапазон ячеек в Google Sheets, который необходимо очистить перед загрузкой данных.
-        По умолчанию очищается диапазон 'A:H'.
-
-    Что делает:
-    -----------
-    1. Авторизуется через `get_gspread_client()` и открывает нужный лист.
-    2. Получает API-ключ из переменной окружения `Rachel` для доступа к WB API.
-    3. Делает GET-запрос к endpoint `tariffs_box` и парсит JSON-ответ.
-    4. Преобразует данные в `pandas.DataFrame`, переименовывает колонки и приводит числовые значения
-       к корректному формату (замена '-' на 0, ',' на '.').
-    5. Добавляет поля `dtNextBox` и `dtTillMax` — даты актуальности тарифов.
-    6. Очищает указанный диапазон на листе Google Sheets.
-    7. Загружает обработанные данные в таблицу.
-
-    Зависимости:
-    ------------
-    - `get_gspread_client()` — авторизация Google Sheets API
-    - `get_requests_url_wb()` — словарь с endpoint'ами WB API
-    - `sheets_names()` и `tables_names()` — названия листов и таблиц
-    - `set_with_dataframe()` — выгрузка pandas.DataFrame в Google Таблицу
-    - `send_tg_message()` — уведомления в Telegram
-    - `os.getenv('Rachel')` — токен авторизации для доступа к API WB
-
-    Уведомления:
-    ------------
-    - Отправляется Telegram-сообщение при запуске и завершении скрипта.
-    - Также отправляется уведомление после успешной загрузки данных.
-
-    Автор:
-    ------
-    Илья, Июль 2025
-    """
+   
     gs = get_gspread_client()
 
     spreadsheet = gs.open(tables_names()['wb_matrix_complete'])
@@ -61,7 +21,7 @@ def tariffs_for_boxes(clear_range: list[str] = ['A:H']) -> None:
     }
 
     params = {
-        "date": '2025-01-01'
+        "date": datetime.now().strftime('%Y-%m-%d')
     }
 
     res = requests.get(url=get_requests_url_wb()[
@@ -82,7 +42,7 @@ def tariffs_for_boxes(clear_range: list[str] = ['A:H']) -> None:
         'boxStorageLiter': 'Хранение_за_литр_день',
         'warehouseName': 'Склад'
     })
-
+    print(box.columns.tolist(), box.shape, sep='\n')
     target_col = [col for col in box.columns if col not in box.columns[-3:]]
 
     box[target_col] = box[target_col].replace('-', 0)
@@ -92,20 +52,34 @@ def tariffs_for_boxes(clear_range: list[str] = ['A:H']) -> None:
     box[target_col] = box[target_col].apply(
         pd.to_numeric, errors='coerce').fillna(0)
 
+    
     sheets.batch_clear(clear_range)
-    set_with_dataframe(
-        sheets,
-        box,
-        include_column_header=True,
-        include_index=False
-    )
+    sheets.update(
+        values=[box.columns.values.tolist()] +
+            box.values.tolist(),
+        )
+   
     send_tg_message(
         "📦 Тарифы WB по коробам успешно обновлены в Google Таблице")
 
 
 if __name__ == '__main__':
 
-    send_tg_message("🚀 Запуск скрипта выгрузки тарифов по коробам WB")
     tariffs_for_boxes()
 
-    send_tg_message("✅ Скрипт выгрузки тарифов по коробам WB завершен успешно")
+#    py -m scripts.pipelines.tariffs-for-boxes
+#  box = box.rename(columns={
+#                 'boxDeliveryAndStorageExpr': 'Доставка и хранение',
+#                 'boxDeliveryBase': 'Логистика первый литр,₽',
+#                 'boxDeliveryLiter': 'Доставка за литр',
+#                 'boxStorageBase': 'Хранение в день,₽',
+#                 'boxStorageLiter': 'Хранение в день, доп. литр,₽',
+#                 'warehouseName': 'Склад',
+#                 'boxDeliveryCoefExpr':'Коэфициент Логистика %, Учтен в тарифах',
+#                 'boxDeliveryMarketplaceBase': 'Логистика доп. литр,₽',
+#                 'boxDeliveryMarketplaceLiter': 'Коэфициент FBS %. Уже учтен в тарифах',
+#                 'boxStorageCoefExpr': 'Коэфициент Хранение %, Учтен в тарифах',
+#                 'geoName': 'Страна/Округ',
+#                 'dtNextBox': 'Дата начала следующего тарифа',
+#                 'dtTillMax': 'Дата окончания последнего утсановленного тарифа'
+#             })
