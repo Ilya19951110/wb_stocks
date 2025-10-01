@@ -1,6 +1,7 @@
 from scripts.spreadsheet_tools.push_mywarehouse import upload_my_werehouse_df_in_assortment_matrix_full
 from scripts.utils.setup_logger import make_logger
 from dotenv import load_dotenv
+import json
 import pandas as pd
 import requests
 import time
@@ -59,6 +60,11 @@ def get_mywerehouse_stocks() -> pd.DataFrame:
         except Exception:
             logger.exception("❌ Ошибка при получении данных с API")
 
+    path = r'C:\Users\Ilya\OneDrive\Рабочий стол\iosifovy\house.json'
+    with open(path, 'w', encoding='utf8') as file:
+        json.dump(werehouse, file, indent=2, ensure_ascii=False)
+        logger.debug('werehouse сохранен')
+
     result_werehouse = []
     for house in werehouse:
         result_werehouse.append({
@@ -93,6 +99,6 @@ if __name__ == '__main__':
 
     werehouse = get_mywerehouse_stocks()
 
-    upload_my_werehouse_df_in_assortment_matrix_full(
-        mywerehouse=werehouse, clear_range=['A:B'])
+    # upload_my_werehouse_df_in_assortment_matrix_full(
+    #     mywerehouse=werehouse, clear_range=['A:B'])
 # py -m scripts.my_werehouse.get_warehouse_api

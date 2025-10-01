@@ -184,6 +184,7 @@ if __name__ == '__main__':
             data=stocks_list,
             sheet_name=sheets_names()['group_stocks_and_idkt'],
             block_nmid=get_block_nmId(),
+            start_range=f"A4"
             
 
         )

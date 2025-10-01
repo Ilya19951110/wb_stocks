@@ -2,6 +2,8 @@ from scripts.utils.setup_logger import make_logger
 from scripts.utils.gspread_client import get_gspread_client
 from scripts.utils.config.factory import tables_names
 from scripts.utils.telegram_logger import send_tg_message
+from scripts.utils.prepare_values_df import prepare_values_for_sheets
+from gspread.utils import rowcol_to_a1
 from typing import Optional
 import pandas as pd
 import time
@@ -47,7 +49,7 @@ def push_concat_all_cabinet_stocks_to_sheets(
     data: list[pd.DataFrame],
     sheet_name: str,
     block_nmid: Optional[pd.DataFrame] = None,
-    clear_range=None,
+    start_range=None,
 
 ) -> None:
     """
@@ -150,19 +152,25 @@ def push_concat_all_cabinet_stocks_to_sheets(
             df_combined = pd.concat(data, ignore_index=True)
             logger.info(f"📊 Объединено строк: {len(df_combined)}")
 
-        if clear_range:
+        if start_range:
+            cols = df_combined.shape[1]
+            
+            clear_range = f"{start_range}:{rowcol_to_a1(1, cols).rstrip('0123456789')}"
             worksheet.batch_clear(clear_range)
             logger.info(
                 f"🧼 Очищен диапазон {clear_range} в листе '{sheet_name}'")
-
+            values =prepare_values_for_sheets(df_combined)
         else:
-            worksheet.clear()
+            worksheet.batch_clear()
             logger.info(f"🧼 Полностью очищен лист '{sheet_name}'")
+            values = prepare_values_for_sheets(df_combined) + df_combined.values.tolist(),
+           
+            start_range='A1'
 
         worksheet.update(
-
-            values=[df_combined.columns.values.tolist()] +
-            df_combined.values.tolist()
+            values=values,
+            range_name=start_range,
+            value_input_option="USER_ENTERED",
         )
 
         logger.info(f"✅ Данные успешно выгружены в лист '{sheet_name}'")
