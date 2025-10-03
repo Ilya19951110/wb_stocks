@@ -87,18 +87,20 @@ def get_mywerehouse_stocks() -> pd.DataFrame:
 
     res = pd.DataFrame(result_werehouse)
 
+    logger.debug(f"df до фильтрации == {res.shape}")
+    res = res[res['ОстаткиВсего'] > 0]
+
     filtered_res = res.filter(
         ['АртикулМойСклад', 'ОстаткиВсего'])
 
-    logger.info(filtered_res.head(2))
+    logger.debug(f'df после фильтрации == {filtered_res.shape}')
     return filtered_res
 
 
 if __name__ == '__main__':
-    #  Запуск
 
     werehouse = get_mywerehouse_stocks()
 
-    # upload_my_werehouse_df_in_assortment_matrix_full(
-    #     mywerehouse=werehouse, clear_range=['A:B'])
+    upload_my_werehouse_df_in_assortment_matrix_full(
+        mywerehouse=werehouse, start_range='C4', num_cols=4)
 # py -m scripts.my_werehouse.get_warehouse_api

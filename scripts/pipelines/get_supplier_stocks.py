@@ -193,11 +193,10 @@ if __name__ == '__main__':
             f"📦 Подготовлено {len(article_seller)} датафреймов для выгрузки баркодов")
 
         push_concat_all_cabinet_stocks_to_sheets(
-            data=article_seller,
-            sheet_name=sheets_names()['group_all_barcodes'],
-            clear_range=['A:D']
-        )
-        
+                data=article_seller,
+                sheet_name=sheets_names()['group_all_barcodes'],
+                start_range="A2"
+            )
 
         update_barcode(
             data=result_data,

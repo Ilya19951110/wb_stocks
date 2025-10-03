@@ -154,9 +154,12 @@ def push_concat_all_cabinet_stocks_to_sheets(
 
         if start_range:
             cols = df_combined.shape[1]
-            
+            logger.debug(f"start_range == {start_range}")
             clear_range = f"{start_range}:{rowcol_to_a1(1, cols).rstrip('0123456789')}"
-            worksheet.batch_clear(clear_range)
+
+            logger.debug(f"clear_range == {clear_range}")
+            worksheet.batch_clear([clear_range])
+            
             logger.info(
                 f"🧼 Очищен диапазон {clear_range} в листе '{sheet_name}'")
             values =prepare_values_for_sheets(df_combined)
